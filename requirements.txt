@@ -1,0 +1,55 @@
+# LangChain + LangGraph
+langchain
+langgraph
+langchain-core
+langchain-community
+
+# LLM Providers
+langchain-openai
+langchain-groq
+langchain-mistralai
+
+# Environment Variables
+python-dotenv
+
+# Data Validation
+pydantic
+
+# API
+fastapi[standard]
+uvicorn
+
+# Security
+pycryptodome
+
+# Qdrant
+qdrant-client
+
+# Mongo
+pymongo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fastapi
+uvicorn
+python-dotenv
+pydantic
+langchain
+langgraph
+openai
+qdrant-client
+requests
+pymongo
+pytest

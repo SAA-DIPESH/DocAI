@@ -1,0 +1,674 @@
+{
+  "profile_id": "EVALUATION_CRITERIA_RETRIEVAL_V2",
+  "profile_name": "Tender Evaluation Criteria Retrieval – Qdrant Payload Schema V2",
+  "agent_name": "EvaluationCriteriaExtractionAgent",
+  "description": "Retrieves all evidence required to identify weighted criteria, scoring methodology, pass/fail gates, thresholds, commercial scoring and award methodology from tender documents.",
+  "runtime_placeholders": {
+    "tenant_id": "{{tenant_id}}",
+    "company_id": "{{company_id}}",
+    "tender_id": "{{tender_id}}",
+    "collection_name": "{{tender_chunks_collection}}"
+  },
+  "retrieval_strategy": {
+    "mode": "hybrid",
+    "dense_vector_name": "content_dense",
+    "sparse_vector_name": "content_sparse",
+    "fusion_method": "rrf",
+    "run_anchor_groups_in_parallel": true,
+    "candidate_limit_per_query_variant": 15,
+    "maximum_candidates_per_anchor": 30,
+    "maximum_total_candidates_before_deduplication": 180,
+    "maximum_evidence_clusters_for_llm": 35,
+    "deduplication": {
+      "enabled": true,
+      "primary_key": [
+        "document_id",
+        "chunk_id"
+      ],
+      "near_duplicate_text_similarity_threshold": 0.94,
+      "retain_highest_ranked_duplicate": true
+    },
+    "reranking": {
+      "enabled": true,
+      "rerank_top_n": 80,
+      "prefer_chunk_types": [
+        "table",
+        "table_row",
+        "section",
+        "paragraph",
+        "appendix"
+      ],
+      "boost_rules": [
+        {
+          "field": "chunk_type",
+          "value": "table",
+          "boost": 0.25
+        },
+        {
+          "field": "chunk_type",
+          "value": "table_row",
+          "boost": 0.2
+        },
+        {
+          "field": "section_heading_normalised",
+          "contains_any": [
+            "evaluation",
+            "award",
+            "scoring",
+            "weighting",
+            "quality",
+            "price",
+            "commercial"
+          ],
+          "boost": 0.2
+        },
+        {
+          "field": "document_type",
+          "contains_any": [
+            "EvaluationMethodology",
+            "AwardCriteria",
+            "InstructionsToTenderers",
+            "InvitationToTender",
+            "PricingSchedule",
+            "ResponseQuestionnaire",
+            "Clarification",
+            "Addendum"
+          ],
+          "boost": 0.15
+        },
+        {
+          "field": "is_table_header_or_caption",
+          "value": true,
+          "boost": 0.1
+        }
+      ]
+    },
+    "max_query_workers": 8
+  },
+  "mandatory_qdrant_filter": {
+    "must": [
+      {
+        "key": "CompanyId",
+        "match": {
+          "value": "{{company_id}}"
+        }
+      },
+      {
+        "key": "TenderId",
+        "match": {
+          "value": "{{tender_id}}"
+        }
+      }
+    ],
+    "must_not": []
+  },
+  "preferred_document_types": [
+    "EvaluationMethodology",
+    "AwardCriteria",
+    "InstructionsToTenderers",
+    "InvitationToTender",
+    "TenderSpecification",
+    "ResponseQuestionnaire",
+    "PricingSchedule",
+    "CommercialSchedule",
+    "Clarification",
+    "Addendum",
+    "Appendix",
+    "TermsAndConditions"
+  ],
+  "context_expansion": {
+    "enabled": true,
+    "neighbour_chunks_before": 2,
+    "neighbour_chunks_after": 2,
+    "include_same_section": true,
+    "include_parent_section": true,
+    "include_table_header": true,
+    "include_full_table_when_match_is_table_row": true,
+    "include_table_caption": true,
+    "include_same_page_chunks": true,
+    "include_previous_page_when_heading_continues": true,
+    "include_next_page_when_table_continues": true,
+    "chunk_index_is_monotonic_within_document": true,
+    "page_id_is_shared_by_all_chunks_on_source_page": true,
+    "same_page_chunk_cap": 80,
+    "whole_document_fallback_cap": 250
+  },
+  "anchor_groups": [
+    {
+      "anchor_id": "EC_AWARD_EVALUATION_OVERVIEW",
+      "priority": 1,
+      "objective": "Find the buyer's overall evaluation and award methodology, including the procurement award basis and high-level quality versus price model.",
+      "anchor_query": "Tender evaluation criteria award methodology quality price weighting scoring model most economically advantageous tender.",
+      "query_variants": [
+        "evaluation criteria and award methodology",
+        "award criteria quality price weighting",
+        "tender evaluation process and scoring methodology",
+        "most economically advantageous tender evaluation",
+        "quality and commercial evaluation model",
+        "how tenders will be evaluated and awarded",
+        "evaluation framework and award decision"
+      ],
+      "lexical_keywords": [
+        "evaluation criteria",
+        "award criteria",
+        "award methodology",
+        "evaluation methodology",
+        "evaluation process",
+        "evaluation model",
+        "evaluation framework",
+        "quality price",
+        "quality/price",
+        "MEAT",
+        "most economically advantageous tender",
+        "most advantageous tender",
+        "tender award"
+      ],
+      "section_heading_hints": [
+        "evaluation and award criteria",
+        "evaluation methodology",
+        "award criteria",
+        "tender evaluation",
+        "basis of award",
+        "evaluation process",
+        "award decision"
+      ],
+      "expected_evidence": [
+        "award_method",
+        "quality_weight_percent",
+        "price_weight_percent",
+        "overall_scoring_model",
+        "evaluation_stages"
+      ]
+    },
+    {
+      "anchor_id": "EC_WEIGHTINGS_AND_SUBCRITERIA",
+      "priority": 1,
+      "objective": "Find weighted criteria, sub-criteria, marks, percentages and the relationship between parent and child evaluation items.",
+      "anchor_query": "Evaluation criteria weighting percentage marks quality sub criteria score allocation evaluation matrix.",
+      "query_variants": [
+        "evaluation criteria weighting percentage",
+        "quality criteria and sub criteria weightings",
+        "evaluation matrix marks and percentages",
+        "criterion subcriterion scoring allocation",
+        "weighted quality questions tender",
+        "percentage weighting table evaluation",
+        "marks available for each criterion"
+      ],
+      "lexical_keywords": [
+        "weighting",
+        "weightings",
+        "weighted",
+        "percentage",
+        "%",
+        "marks",
+        "maximum marks",
+        "available marks",
+        "score allocation",
+        "evaluation matrix",
+        "sub-criteria",
+        "subcriteria",
+        "quality weighting"
+      ],
+      "section_heading_hints": [
+        "evaluation matrix",
+        "weightings",
+        "scoring and weighting",
+        "quality criteria",
+        "assessment criteria",
+        "criteria and weightings",
+        "marks allocation"
+      ],
+      "expected_evidence": [
+        "criterion_name",
+        "subcriterion_name",
+        "weight_percent",
+        "maximum_score",
+        "parent_criterion",
+        "response_question_reference"
+      ]
+    },
+    {
+      "anchor_id": "EC_SCORING_SCALE_AND_DESCRIPTORS",
+      "priority": 1,
+      "objective": "Find the scoring scale, score descriptors, scoring formulae and the definition of each score level.",
+      "anchor_query": "Tender scoring methodology scoring scale score descriptors zero to five excellent good satisfactory poor evaluation.",
+      "query_variants": [
+        "scoring methodology and score descriptors",
+        "evaluation scoring scale 0 to 5",
+        "evaluation scoring scale 0 to 10",
+        "excellent good satisfactory poor score definitions",
+        "quality scoring guidance tender",
+        "marks awarded based on response quality",
+        "scoring descriptors evaluation panel"
+      ],
+      "lexical_keywords": [
+        "scoring scale",
+        "score descriptors",
+        "scoring guidance",
+        "score definition",
+        "0 to 5",
+        "0-5",
+        "0 to 10",
+        "0-10",
+        "excellent",
+        "good",
+        "satisfactory",
+        "poor",
+        "unacceptable",
+        "moderation"
+      ],
+      "section_heading_hints": [
+        "scoring methodology",
+        "scoring guidance",
+        "scoring descriptors",
+        "evaluation scoring",
+        "marking scheme",
+        "quality scoring"
+      ],
+      "expected_evidence": [
+        "scoring_scale",
+        "score_descriptor",
+        "score_definition",
+        "maximum_score",
+        "evaluation_panel_guidance"
+      ]
+    },
+    {
+      "anchor_id": "EC_QUALITY_QUESTION_MAPPING",
+      "priority": 1,
+      "objective": "Find questionnaire questions, method statements and response sections that are explicitly scored by the buyer.",
+      "anchor_query": "Tender quality questions method statement response evaluation question scoring marks quality submission.",
+      "query_variants": [
+        "quality questions and evaluation marks",
+        "method statement scoring criteria",
+        "response question evaluation weighting",
+        "technical response questions scoring",
+        "quality submission assessment questions",
+        "questionnaire evaluation and marks",
+        "tender response requirements and scoring"
+      ],
+      "lexical_keywords": [
+        "method statement",
+        "quality question",
+        "technical question",
+        "response question",
+        "questionnaire",
+        "quality submission",
+        "tender response",
+        "marks available",
+        "scored response",
+        "question weighting"
+      ],
+      "section_heading_hints": [
+        "quality questions",
+        "method statements",
+        "response requirements",
+        "technical questionnaire",
+        "quality submission",
+        "tender response schedule"
+      ],
+      "expected_evidence": [
+        "question_id",
+        "question_text",
+        "criterion_name",
+        "weight_percent",
+        "maximum_score",
+        "word_limit",
+        "response_instruction"
+      ]
+    },
+    {
+      "anchor_id": "EC_COMMERCIAL_PRICE_SCORING",
+      "priority": 1,
+      "objective": "Find price and commercial evaluation rules, commercial weighting, price formulae, total cost of ownership calculations and pricing schedule instructions.",
+      "anchor_query": "Tender price evaluation commercial scoring formula pricing schedule lowest price weighted commercial assessment.",
+      "query_variants": [
+        "commercial evaluation and price weighting",
+        "price scoring formula tender",
+        "lowest price commercial score calculation",
+        "pricing schedule evaluation methodology",
+        "total cost of ownership evaluation",
+        "commercial assessment scoring",
+        "financial evaluation price formula"
+      ],
+      "lexical_keywords": [
+        "price evaluation",
+        "commercial evaluation",
+        "commercial score",
+        "pricing formula",
+        "price formula",
+        "lowest price",
+        "lowest compliant tender",
+        "total cost",
+        "total cost of ownership",
+        "pricing schedule",
+        "commercial weighting",
+        "financial evaluation"
+      ],
+      "section_heading_hints": [
+        "commercial evaluation",
+        "price evaluation",
+        "pricing methodology",
+        "financial evaluation",
+        "pricing schedule",
+        "commercial assessment"
+      ],
+      "expected_evidence": [
+        "price_weight_percent",
+        "price_scoring_formula",
+        "commercial_criterion",
+        "pricing_schedule_reference",
+        "price_normalisation_rule",
+        "cost_assumption"
+      ]
+    },
+    {
+      "anchor_id": "EC_THRESHOLDS_PASS_FAIL_AND_EXCLUSION",
+      "priority": 1,
+      "objective": "Find pass/fail conditions, mandatory gates, minimum scores, compliance thresholds and exclusion rules.",
+      "anchor_query": "Tender pass fail mandatory requirement minimum score threshold exclusion evaluation compliance gate.",
+      "query_variants": [
+        "pass fail tender evaluation requirement",
+        "minimum threshold score quality evaluation",
+        "minimum score required to proceed",
+        "bid exclusion evaluation criteria",
+        "mandatory requirement tender compliance",
+        "failure to meet threshold exclusion",
+        "selection criteria pass fail"
+      ],
+      "lexical_keywords": [
+        "pass/fail",
+        "pass fail",
+        "mandatory",
+        "minimum threshold",
+        "minimum score",
+        "threshold",
+        "must achieve",
+        "must score",
+        "excluded",
+        "disqualified",
+        "eliminated",
+        "non-compliant",
+        "compliance gate"
+      ],
+      "section_heading_hints": [
+        "mandatory requirements",
+        "pass fail requirements",
+        "minimum thresholds",
+        "selection criteria",
+        "exclusion criteria",
+        "compliance requirements"
+      ],
+      "expected_evidence": [
+        "condition_name",
+        "condition_type",
+        "minimum_score",
+        "minimum_percentage",
+        "pass_fail",
+        "mandatory",
+        "impact_if_not_met"
+      ]
+    },
+    {
+      "anchor_id": "EC_PRESENTATION_INTERVIEW_DEMONSTRATION",
+      "priority": 2,
+      "objective": "Find any scored supplier presentation, interview, demonstration, workshop, site visit or clarification stage.",
+      "anchor_query": "Tender evaluation supplier presentation interview demonstration workshop site visit score weighting.",
+      "query_variants": [
+        "supplier presentation evaluation weighting",
+        "tender interview scored assessment",
+        "demonstration evaluation criteria",
+        "bidder workshop scoring",
+        "site visit evaluation score",
+        "clarification presentation marks"
+      ],
+      "lexical_keywords": [
+        "presentation",
+        "interview",
+        "demonstration",
+        "demo",
+        "workshop",
+        "site visit",
+        "oral presentation",
+        "clarification meeting",
+        "evaluation panel"
+      ],
+      "section_heading_hints": [
+        "presentation",
+        "interview",
+        "demonstration",
+        "supplier workshop",
+        "assessment day"
+      ],
+      "expected_evidence": [
+        "stage_name",
+        "weight_percent",
+        "maximum_score",
+        "presentation_requirements",
+        "attendees",
+        "duration",
+        "assessment_topics"
+      ]
+    },
+    {
+      "anchor_id": "EC_SOCIAL_VALUE_SUSTAINABILITY_AND_ESG",
+      "priority": 2,
+      "objective": "Find separately scored social value, sustainability, environmental, carbon, equality or community-benefit criteria.",
+      "anchor_query": "Tender social value sustainability environmental carbon community benefit evaluation weighting scoring.",
+      "query_variants": [
+        "social value evaluation weighting",
+        "sustainability scoring criteria tender",
+        "environmental and carbon evaluation marks",
+        "community benefit evaluation",
+        "ESG tender scoring",
+        "equality diversity inclusion evaluation question"
+      ],
+      "lexical_keywords": [
+        "social value",
+        "sustainability",
+        "environmental",
+        "carbon",
+        "net zero",
+        "community benefit",
+        "ESG",
+        "equality",
+        "diversity",
+        "inclusion",
+        "local employment"
+      ],
+      "section_heading_hints": [
+        "social value",
+        "sustainability",
+        "environmental requirements",
+        "carbon reduction",
+        "community benefits",
+        "responsible business"
+      ],
+      "expected_evidence": [
+        "criterion_name",
+        "weight_percent",
+        "question_id",
+        "response_requirement",
+        "measurement_method",
+        "reporting_requirement"
+      ]
+    },
+    {
+      "anchor_id": "EC_CLARIFICATIONS_ADDENDA_AND_REVISIONS",
+      "priority": 1,
+      "objective": "Find updated, corrected or superseding evaluation information issued through clarifications, addenda or bidder communications.",
+      "anchor_query": "Tender clarification addendum revised evaluation criteria updated weighting corrected scoring methodology.",
+      "query_variants": [
+        "clarification revised evaluation criteria",
+        "addendum updated weighting tender",
+        "amendment scoring methodology",
+        "revised award criteria",
+        "superseded evaluation matrix",
+        "clarification response evaluation scoring"
+      ],
+      "lexical_keywords": [
+        "clarification",
+        "addendum",
+        "amendment",
+        "revision",
+        "revised",
+        "updated",
+        "superseded",
+        "correction",
+        "change to evaluation",
+        "change to weighting"
+      ],
+      "section_heading_hints": [
+        "clarifications",
+        "addendum",
+        "amendment notice",
+        "tender update",
+        "questions and answers"
+      ],
+      "expected_evidence": [
+        "changed_field",
+        "previous_value",
+        "revised_value",
+        "effective_date",
+        "superseded_document_reference"
+      ]
+    }
+  ],
+  "evidence_payload_fields_to_return": [
+    "tenant_id",
+    "tender_id",
+    "document_id",
+    "document_name",
+    "document_type",
+    "document_version",
+    "is_latest_document_version",
+    "page_number",
+    "page_end_number",
+    "chunk_id",
+    "chunk_index",
+    "chunk_type",
+    "section_heading",
+    "section_heading_normalised",
+    "parent_section_id",
+    "table_id",
+    "table_caption",
+    "table_headers",
+    "table_row_index",
+    "table_json",
+    "text",
+    "source_file_url",
+    "ocr_confidence",
+    "parse_status",
+    "created_at"
+  ],
+  "post_retrieval_rules": {
+    "group_by": [
+      "document_id",
+      "section_heading",
+      "table_id"
+    ],
+    "retain_at_least_one_result_per_high_relevance_document": true,
+    "prefer_latest_document_version": true,
+    "detect_conflicting_values": true,
+    "conflict_fields": [
+      "quality_weight_percent",
+      "price_weight_percent",
+      "scoring_scale",
+      "minimum_score",
+      "weight_percent",
+      "price_scoring_formula"
+    ],
+    "send_to_llm_only_when_source_evidence_exists": true,
+    "return_not_found_when_no_grounded_evidence_exists": true
+  },
+  "qdrant_payload_schema": {
+    "description": "Actual Qdrant payload field names used by the paired Python retriever. ChunkIndex and PageID are mandatory for reliable context expansion.",
+    "field_mapping": {
+      "company_id": "CompanyId",
+      "tender_id": "TenderId",
+      "document_id": "DocumentId",
+      "chunk_id": "ChunkId",
+      "document_name": "DocumentName",
+      "text": "Text",
+      "document_type": "DocumentType",
+      "created_at": "CreatedAt",
+      "related_section": "RelatedSection",
+      "chunk_index": "ChunkIndex",
+      "page_id": "PageID",
+      "page_number": "PageNumber",
+      "section_heading": "SectionHeading",
+      "parent_section_id": "ParentSectionId",
+      "table_id": "TableId",
+      "table_caption": "TableCaption",
+      "table_json": "TableJson",
+      "is_active": "IsActive",
+      "parse_status": "ParseStatus",
+      "document_version": "DocumentVersion",
+      "is_latest_document_version": "IsLatestDocumentVersion"
+    },
+    "required_for_exact_context": [
+      "CompanyId",
+      "TenderId",
+      "DocumentId",
+      "ChunkId",
+      "ChunkIndex",
+      "PageID",
+      "Text"
+    ],
+    "recommended_qdrant_payload_indexes": [
+      {
+        "field_name": "CompanyId",
+        "schema": "keyword"
+      },
+      {
+        "field_name": "TenderId",
+        "schema": "keyword"
+      },
+      {
+        "field_name": "DocumentId",
+        "schema": "keyword"
+      },
+      {
+        "field_name": "ChunkIndex",
+        "schema": "integer"
+      },
+      {
+        "field_name": "PageID",
+        "schema": "keyword"
+      },
+      {
+        "field_name": "PageNumber",
+        "schema": "integer"
+      },
+      {
+        "field_name": "SectionHeading",
+        "schema": "keyword"
+      },
+      {
+        "field_name": "RelatedSection",
+        "schema": "keyword"
+      },
+      {
+        "field_name": "TableId",
+        "schema": "keyword"
+      }
+    ]
+  },
+  "output_contract": {
+    "output_file": "evaluation_evidence.json",
+    "output_contains": [
+      "seed_chunks",
+      "evidence_chunks",
+      "warnings"
+    ],
+    "minimum_source_fields_for_llm": [
+      "DocumentId",
+      "ChunkId",
+      "DocumentName",
+      "PageID",
+      "PageNumber",
+      "ChunkIndex",
+      "Text"
+    ]
+  }
+}

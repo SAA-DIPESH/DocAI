@@ -1,0 +1,908 @@
+{
+  "schema_version": "1.0",
+  "artifact": "Evaluation Criteria Extraction Agent Specification",
+  "purpose": "Define the input contract, processing contract, output contract and deterministic validation expectations for grounded extraction of tender evaluation criteria.",
+  "input_contract": {
+    "required": [
+      "TenderContext",
+      "EvidenceChunks"
+    ],
+    "TenderContext": {
+      "CompanyId": "string | null",
+      "TenderId": "string",
+      "RetrievalProfileId": "string | null"
+    },
+    "EvidenceChunks": {
+      "type": "array",
+      "minItems": 0,
+      "item_contract": {
+        "canonical_fields": {
+          "DocumentId": "string",
+          "ChunkId": "string",
+          "DocumentName": "string | null",
+          "DocumentType": "string | null",
+          "PageID": "string | null",
+          "PageNumber": "integer | null",
+          "ChunkIndex": "integer | null",
+          "RelatedSection": "string | null",
+          "TableId": "string | null",
+          "TableCaption": "string | null",
+          "TableHeaders": "array | null",
+          "TableJson": "object | null",
+          "Text": "string"
+        },
+        "accepted_source_field_aliases": {
+          "DocumentId": [
+            "DocumentId",
+            "document_id"
+          ],
+          "ChunkId": [
+            "ChunkId",
+            "chunk_id"
+          ],
+          "DocumentName": [
+            "DocumentName",
+            "document_name"
+          ],
+          "DocumentType": [
+            "DocumentType",
+            "document_type"
+          ],
+          "PageID": [
+            "PageID",
+            "page_id"
+          ],
+          "PageNumber": [
+            "PageNumber",
+            "page_number"
+          ],
+          "ChunkIndex": [
+            "ChunkIndex",
+            "chunk_index"
+          ],
+          "RelatedSection": [
+            "RelatedSection",
+            "related_section",
+            "section_heading"
+          ],
+          "TableId": [
+            "TableId",
+            "table_id"
+          ],
+          "TableCaption": [
+            "TableCaption",
+            "table_caption"
+          ],
+          "TableHeaders": [
+            "TableHeaders",
+            "table_headers"
+          ],
+          "TableJson": [
+            "TableJson",
+            "table_json"
+          ],
+          "Text": [
+            "Text",
+            "text"
+          ]
+        },
+        "notes": [
+          "The normalisation layer must preserve the original payload for traceability.",
+          "ChunkIndex and PageID support retrieval context; they are not evidence of an evaluation rule.",
+          "Text is the only field from which substantive evaluation facts may be extracted, except that table metadata may establish the meaning of a table cell."
+        ]
+      }
+    }
+  },
+  "processing_contract": [
+    {
+      "step": 1,
+      "name": "Normalise evidence fields",
+      "rule": "Map aliases to canonical field names without deleting source text or metadata."
+    },
+    {
+      "step": 2,
+      "name": "Detect evaluation evidence",
+      "rule": "Identify explicit award methodology, weighted criteria, sub-criteria, scoring scales, thresholds, pass/fail gates, mandatory conditions, commercial scoring rules, evaluation stages, and explicit supersession statements."
+    },
+    {
+      "step": 3,
+      "name": "Interpret table context",
+      "rule": "Use supplied table headers, captions, parent rows, footnotes and neighbour chunks before assigning meaning to a number."
+    },
+    {
+      "step": 4,
+      "name": "Extract facts",
+      "rule": "Populate a field only when explicitly supported; otherwise populate null and add a gap, conflict or review flag."
+    },
+    {
+      "step": 5,
+      "name": "Attach evidence",
+      "rule": "Attach field-level source evidence to every extracted record and every overall scoring value."
+    },
+    {
+      "step": 6,
+      "name": "Resolve explicit supersession",
+      "rule": "Replace an earlier value only where evidence explicitly says it supersedes, replaces, amends or changes that exact earlier value."
+    },
+    {
+      "step": 7,
+      "name": "Run deterministic validations",
+      "rule": "Validate numeric bounds, complete overall weight total where explicitly complete, parent/child totals where explicitly complete, source coverage, separation of pass/fail from weighted criteria, and conflicts."
+    }
+  ],
+  "controlled_vocabularies": {
+    "ExtractionStatus": [
+      "COMPLETED",
+      "PARTIAL",
+      "NOT_FOUND",
+      "NEEDS_REVIEW"
+    ],
+    "PrimaryCategory": [
+      "WEIGHTED_CRITERION",
+      "SUBCRITERION",
+      "PASS_FAIL_GATE",
+      "MANDATORY_REQUIREMENT",
+      "MINIMUM_THRESHOLD",
+      "COMMERCIAL_SCORING_RULE",
+      "EVALUATION_STAGE",
+      "SUBMISSION_REQUIREMENT",
+      "INFORMATIONAL"
+    ],
+    "ValidationStatus": [
+      "VALID",
+      "INVALID",
+      "NOT_ASSESSABLE",
+      "NOT_APPLICABLE"
+    ],
+    "ConflictStatus": [
+      "OPEN",
+      "EXPLICITLY_SUPERSEDED",
+      "RESOLVED_BY_HUMAN"
+    ],
+    "ReviewFlagType": [
+      "MISSING_SOURCE_EVIDENCE",
+      "AMBIGUOUS_OCR",
+      "INCOMPLETE_TABLE_CONTEXT",
+      "MISSING_REFERENCED_SECTION",
+      "CONFLICTING_VALUES",
+      "INVALID_WEIGHT_TOTAL",
+      "INVALID_PARENT_CHILD_TOTAL",
+      "TRUNCATED_TEXT",
+      "UNCLEAR_NUMERIC_MEANING",
+      "EXPLICIT_SUPERSESSION_UNCLEAR"
+    ]
+  },
+  "output_contract": {
+    "required_top_level_fields": [
+      "SchemaVersion",
+      "CompanyId",
+      "TenderId",
+      "EvaluationModelDetected",
+      "ExtractionStatus",
+      "OverallScoring",
+      "Criteria",
+      "MandatoryConditions",
+      "Conflicts",
+      "MissingInformation",
+      "Validation",
+      "ReviewFlags",
+      "RequiresHumanReview",
+      "SourceDocuments"
+    ],
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "SchemaVersion",
+        "CompanyId",
+        "TenderId",
+        "EvaluationModelDetected",
+        "ExtractionStatus",
+        "OverallScoring",
+        "Criteria",
+        "MandatoryConditions",
+        "Conflicts",
+        "MissingInformation",
+        "Validation",
+        "ReviewFlags",
+        "RequiresHumanReview",
+        "SourceDocuments"
+      ],
+      "properties": {
+        "SchemaVersion": {
+          "const": "1.0"
+        },
+        "CompanyId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "TenderId": {
+          "type": "string"
+        },
+        "EvaluationModelDetected": {
+          "type": "boolean"
+        },
+        "ExtractionStatus": {
+          "enum": [
+            "COMPLETED",
+            "PARTIAL",
+            "NOT_FOUND",
+            "NEEDS_REVIEW"
+          ]
+        },
+        "OverallScoring": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AwardMethod",
+            "QualityWeightPercent",
+            "PriceWeightPercent",
+            "OtherOverallWeightings",
+            "ScoringScale",
+            "PriceScoringFormula",
+            "SourceEvidence"
+          ],
+          "properties": {
+            "AwardMethod": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "QualityWeightPercent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "PriceWeightPercent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "OtherOverallWeightings": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/WeightingItem"
+              }
+            },
+            "ScoringScale": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "Minimum",
+                "Maximum",
+                "Description",
+                "SourceEvidence"
+              ],
+              "properties": {
+                "Minimum": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "Maximum": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "Description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "SourceEvidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/SourceEvidence"
+                  }
+                }
+              }
+            },
+            "PriceScoringFormula": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "SourceEvidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceEvidence"
+              }
+            }
+          }
+        },
+        "Criteria": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Criterion"
+          }
+        },
+        "MandatoryConditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Condition"
+          }
+        },
+        "Conflicts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Conflict"
+          }
+        },
+        "MissingInformation": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MissingInformation"
+          }
+        },
+        "Validation": {
+          "$ref": "#/$defs/Validation"
+        },
+        "ReviewFlags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReviewFlag"
+          }
+        },
+        "RequiresHumanReview": {
+          "type": "boolean"
+        },
+        "SourceDocuments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "DocumentId",
+              "DocumentName"
+            ],
+            "properties": {
+              "DocumentId": {
+                "type": "string"
+              },
+              "DocumentName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "$defs": {
+        "SourceEvidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DocumentId",
+            "ChunkId",
+            "PageID",
+            "PageNumber",
+            "ChunkIndex",
+            "EvidenceExcerpt",
+            "SupportedFields"
+          ],
+          "properties": {
+            "DocumentId": {
+              "type": "string"
+            },
+            "ChunkId": {
+              "type": "string"
+            },
+            "PageID": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "PageNumber": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "ChunkIndex": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "EvidenceExcerpt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "SupportedFields": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "WeightingItem": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Name",
+            "WeightPercent",
+            "SourceEvidence"
+          ],
+          "properties": {
+            "Name": {
+              "type": "string"
+            },
+            "WeightPercent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "SourceEvidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceEvidence"
+              }
+            }
+          }
+        },
+        "Criterion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "CriterionId",
+            "Name",
+            "PrimaryCategory",
+            "SecondaryCategories",
+            "ParentCriterionId",
+            "QuestionReferences",
+            "WeightPercent",
+            "MaximumScore",
+            "MinimumScore",
+            "MinimumPercent",
+            "PassFail",
+            "Mandatory",
+            "Description",
+            "PriceScoringFormula",
+            "SourceEvidence"
+          ],
+          "properties": {
+            "CriterionId": {
+              "type": "string"
+            },
+            "Name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "PrimaryCategory": {
+              "enum": [
+                "WEIGHTED_CRITERION",
+                "SUBCRITERION",
+                "PASS_FAIL_GATE",
+                "MANDATORY_REQUIREMENT",
+                "MINIMUM_THRESHOLD",
+                "COMMERCIAL_SCORING_RULE",
+                "EVALUATION_STAGE",
+                "SUBMISSION_REQUIREMENT",
+                "INFORMATIONAL"
+              ]
+            },
+            "SecondaryCategories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "ParentCriterionId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "QuestionReferences": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "WeightPercent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "MaximumScore": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "MinimumScore": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "MinimumPercent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "PassFail": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "Mandatory": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "Description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "PriceScoringFormula": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "SourceEvidence": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/SourceEvidence"
+              }
+            }
+          }
+        },
+        "Condition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ConditionId",
+            "Name",
+            "PrimaryCategory",
+            "Rule",
+            "ImpactIfNotMet",
+            "SourceEvidence"
+          ],
+          "properties": {
+            "ConditionId": {
+              "type": "string"
+            },
+            "Name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "PrimaryCategory": {
+              "enum": [
+                "PASS_FAIL_GATE",
+                "MANDATORY_REQUIREMENT",
+                "MINIMUM_THRESHOLD",
+                "SUBMISSION_REQUIREMENT"
+              ]
+            },
+            "Rule": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "ImpactIfNotMet": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "SourceEvidence": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/SourceEvidence"
+              }
+            }
+          }
+        },
+        "Conflict": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ConflictId",
+            "Field",
+            "Description",
+            "Status",
+            "Values",
+            "SourceEvidence"
+          ],
+          "properties": {
+            "ConflictId": {
+              "type": "string"
+            },
+            "Field": {
+              "type": "string"
+            },
+            "Description": {
+              "type": "string"
+            },
+            "Status": {
+              "enum": [
+                "OPEN",
+                "EXPLICITLY_SUPERSEDED",
+                "RESOLVED_BY_HUMAN"
+              ]
+            },
+            "Values": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "Value",
+                  "SourceEvidence"
+                ],
+                "properties": {
+                  "Value": {},
+                  "SourceEvidence": {
+                    "$ref": "#/$defs/SourceEvidence"
+                  }
+                }
+              }
+            },
+            "SourceEvidence": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/SourceEvidence"
+              }
+            }
+          }
+        },
+        "MissingInformation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Field",
+            "Reason",
+            "RelatedCriterionId",
+            "SourceEvidence"
+          ],
+          "properties": {
+            "Field": {
+              "type": "string"
+            },
+            "Reason": {
+              "type": "string"
+            },
+            "RelatedCriterionId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "SourceEvidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceEvidence"
+              }
+            }
+          }
+        },
+        "ReviewFlag": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Type",
+            "Description",
+            "SourceEvidence"
+          ],
+          "properties": {
+            "Type": {
+              "enum": [
+                "MISSING_SOURCE_EVIDENCE",
+                "AMBIGUOUS_OCR",
+                "INCOMPLETE_TABLE_CONTEXT",
+                "MISSING_REFERENCED_SECTION",
+                "CONFLICTING_VALUES",
+                "INVALID_WEIGHT_TOTAL",
+                "INVALID_PARENT_CHILD_TOTAL",
+                "TRUNCATED_TEXT",
+                "UNCLEAR_NUMERIC_MEANING",
+                "EXPLICIT_SUPERSESSION_UNCLEAR"
+              ]
+            },
+            "Description": {
+              "type": "string"
+            },
+            "SourceEvidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceEvidence"
+              }
+            }
+          }
+        },
+        "Validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SourceCoverage",
+            "NumericValidity",
+            "OverallWeightingReconciliation",
+            "ParentChildReconciliation",
+            "PassFailSeparation",
+            "SupersessionControl",
+            "MissingDataDiscipline"
+          ],
+          "properties": {
+            "SourceCoverage": {
+              "$ref": "#/$defs/ValidationCheck"
+            },
+            "NumericValidity": {
+              "$ref": "#/$defs/ValidationCheck"
+            },
+            "OverallWeightingReconciliation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "Status",
+                "CalculatedTotalPercent",
+                "ExpectedTotalPercent",
+                "Explanation"
+              ],
+              "properties": {
+                "Status": {
+                  "enum": [
+                    "VALID",
+                    "INVALID",
+                    "NOT_ASSESSABLE",
+                    "NOT_APPLICABLE"
+                  ]
+                },
+                "CalculatedTotalPercent": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "ExpectedTotalPercent": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "Explanation": {
+                  "type": "string"
+                }
+              }
+            },
+            "ParentChildReconciliation": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ParentCriterionId",
+                  "Status",
+                  "ParentWeightPercent",
+                  "ChildTotalWeightPercent",
+                  "Explanation"
+                ],
+                "properties": {
+                  "ParentCriterionId": {
+                    "type": "string"
+                  },
+                  "Status": {
+                    "enum": [
+                      "VALID",
+                      "INVALID",
+                      "NOT_ASSESSABLE",
+                      "NOT_APPLICABLE"
+                    ]
+                  },
+                  "ParentWeightPercent": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "ChildTotalWeightPercent": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "Explanation": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "PassFailSeparation": {
+              "$ref": "#/$defs/ValidationCheck"
+            },
+            "SupersessionControl": {
+              "$ref": "#/$defs/ValidationCheck"
+            },
+            "MissingDataDiscipline": {
+              "$ref": "#/$defs/ValidationCheck"
+            }
+          }
+        },
+        "ValidationCheck": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Status",
+            "Explanation"
+          ],
+          "properties": {
+            "Status": {
+              "enum": [
+                "VALID",
+                "INVALID",
+                "NOT_ASSESSABLE",
+                "NOT_APPLICABLE"
+              ]
+            },
+            "Explanation": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "mandatory_validation_rules": {
+    "source_coverage": "No item in Criteria or MandatoryConditions may have an empty SourceEvidence array.",
+    "numeric_validity": "All populated percentage fields must be numeric and between 0 and 100 inclusive.",
+    "overall_weightings": "Calculate a total only when the evidence identifies a complete overall evaluation allocation. Never assume an omitted allocation is zero.",
+    "parent_child_weightings": "Compare parent and child totals only when both the parent value and a complete child set are explicitly available.",
+    "pass_fail_separation": "Never represent a pass/fail or mandatory item solely as a weighted criterion unless the evidence explicitly states both roles.",
+    "supersession": "Only mark an earlier value superseded when the text explicitly establishes the replacement relationship.",
+    "missing_values": "Use null for unsupported fields and include a MissingInformation item where the gap is material."
+  },
+  "not_found_contract": {
+    "EvaluationModelDetected": false,
+    "ExtractionStatus": "NOT_FOUND",
+    "Criteria": [],
+    "MandatoryConditions": [],
+    "Conflicts": [],
+    "MissingInformation": [
+      {
+        "Field": "EvaluationCriteria",
+        "Reason": "No explicit evaluation, award, weighting, scoring, threshold, pass/fail, or price-scoring evidence was found in the supplied evidence chunks.",
+        "RelatedCriterionId": null,
+        "SourceEvidence": []
+      }
+    ],
+    "RequiresHumanReview": false
+  }
+}
