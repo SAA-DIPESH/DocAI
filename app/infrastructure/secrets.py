@@ -141,6 +141,10 @@ class SecretManager:
         self.client.close()
 
 
+# Create Object
+secret_manager = SecretManager()
+
+
 
 @lru_cache(maxsize=1)
 def resolve_openai_api_key() -> str:
