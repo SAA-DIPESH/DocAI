@@ -16,23 +16,13 @@ logger = Logging(
 
 class RequirementService:
 
-    def __init__(
-        self,
-        processing_batch_size: int = 10,
-        max_concurrency: int = 10,
-    ) -> None:
+    def __init__(self,processing_batch_size: int = 10,max_concurrency: int = 10) -> None:
 
         self.processing_batch_size = processing_batch_size
         self.max_concurrency = max_concurrency
 
     @staticmethod
-    def create_initial_state(
-        chunk: Dict[str, Any],
-        company_id: str,
-        user_id: str,
-        user_name: str,
-        status: str,
-    )-> TenderRequirementState:
+    def create_initial_state(chunk: Dict[str, Any],company_id: str,user_id: str,user_name: str,status: str)-> TenderRequirementState:
 
         return {
             "company_id": company_id,
@@ -53,14 +43,7 @@ class RequirementService:
             "node_latencies": {},
         }
 
-    async def process_tender(
-        self,
-        company_id: str,
-        tender_id: str,
-        user_id: str,
-        user_name: str,
-        status: str,
-    )-> Dict[str, Any]:
+    async def process_tender(self,company_id: str,tender_id: str,user_id: str,user_name: str,status: str)-> Dict[str, Any]:
 
         tracking_token = logger.start(
             message="Tender processing started",
