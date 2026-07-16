@@ -2,7 +2,7 @@ from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
-from app.utils.helpers import SecretManager
+from app.infrastructure.secrets import secret_manager
 from bson import ObjectId
 import os
 
@@ -13,8 +13,6 @@ load_dotenv()
 # =====================================================
 # Get Secrets Key
 # ======================================================
-secret_manager = SecretManager()
-
 try:
     openai_api_key = secret_manager.get_secret()
 finally:
