@@ -28,11 +28,7 @@ async def process_requirement(
         event_type="RequirementProcessingStarted",
     )
 
-    status = (
-        "Regenerating"
-        if str(request.IsRegenerate).lower() == "true"
-        else "Active"
-    )
+    status = "Regenerating" if request.IsRegenerate else "Active"
 
     try:
 
