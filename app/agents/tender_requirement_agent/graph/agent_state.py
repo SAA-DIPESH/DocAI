@@ -31,6 +31,12 @@ class TenderRequirementState(TypedDict, total=False):
     # =========================================================
     chunk_text: str
 
+    # Filteration
+    should_process: bool
+    filter_score: int
+    matched_keywords: List[str]
+    filter_reason: str
+
     # =========================================================
     # Master Data
     # =========================================================
