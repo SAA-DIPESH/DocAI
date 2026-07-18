@@ -36,6 +36,11 @@ class TenderRequirementState(TypedDict, total=False):
     filter_score: int
     matched_keywords: List[str]
     filter_reason: str
+    filter_confidence: Literal[
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+    ]
 
     # =========================================================
     # Master Data

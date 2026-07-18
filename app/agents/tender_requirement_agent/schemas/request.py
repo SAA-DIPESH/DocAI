@@ -1,10 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class RequirementRequest(BaseModel):
-    company_id: str
-    tender_id: str
-    IsRegenerate : str
+    CompanyId: str
+    TenderId: str 
+    IsRegenerate : bool
     UserId : str
     UserName : str
     ProjectId : str

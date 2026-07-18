@@ -1,109 +1,94 @@
-import re
-from typing import Tuple
+from app.agents.tender_requirement_agent.graph.agent_state import (
+    TenderRequirementState,
+)
 
-# Words commonly found in tender requirements
-REQUIREMENT_KEYWORDS = {
-    # Obligation
-    "shall",
-    "must",
-    "should",
-    "required",
-    "mandatory",
-    "require",
-    "requires",
-    "need",
-    "needs",
+from app.agents.tender_requirement_agent.services.metadata_filter import (
+    metadata_filter,
+)
 
-    # Parties
-    "bidder",
-    "contractor",
-    "vendor",
-    "supplier",
-    "consultant",
-    "service provider",
+from app.agents.tender_requirement_agent.services.content_filter import (
+    content_filter,
+)
 
-    # Actions
-    "submit",
-    "provide",
-    "maintain",
-    "install",
-    "deliver",
-    "ensure",
-    "perform",
-    "execute",
-    "comply",
-    "compliance",
+# =====================================================
+# Thresholds
+# =====================================================
 
-    # Eligibility
-    "eligible",
-    "eligibility",
-    "qualification",
-    "experience",
-    "certificate",
-    "certification",
-    "license",
-    "registration",
-
-    # Technical
-    "technical",
-    "specification",
-    "criteria",
-    "standard",
-
-    # Financial
-    "emd",
-    "security deposit",
-    "performance bank guarantee",
-    "turnover",
-}
-
-# Common requirement sentence patterns
-REQUIREMENT_PATTERNS = [
-    r"\bshall\b",
-    r"\bmust\b",
-    r"\bis required to\b",
-    r"\bmandatory\b",
-    r"\bthe bidder shall\b",
-    r"\bthe contractor shall\b",
-    r"\bthe vendor shall\b",
-    r"\bthe supplier shall\b",
-    r"\bminimum\b",
-    r"\bat least\b",
-]
+HIGH_CONFIDENCE_THRESHOLD = 12
+MEDIUM_CONFIDENCE_THRESHOLD = 6
 
 
-def rule_based_filter(chunk_text: str) -> Tuple[bool, str]:
+def rule_based_filter(
+    state: TenderRequirementState,
+):
     """
+    Combines metadata and content scores to determine whether
+    the chunk should be processed by the LLM.
+
     Returns:
-        (should_process, reason)
+        {
+            should_process,
+            filter_score,
+            filter_confidence,
+            filter_reason
+        }
     """
 
-    if not chunk_text or not chunk_text.strip():
-        return False, "Empty chunk"
+    # =====================================================
+    # Metadata Score
+    # =====================================================
 
-    text = chunk_text.lower()
+    metadata_score, metadata_reason = metadata_filter(state)
 
-    matched_keywords = [
-        kw for kw in REQUIREMENT_KEYWORDS
-        if kw in text
-    ]
+    # =====================================================
+    # Content Score
+    # =====================================================
 
-    matched_patterns = [
-        pattern for pattern in REQUIREMENT_PATTERNS
-        if re.search(pattern, text)
-    ]
-
-    score = 0
-    score += len(matched_keywords)
-    score += len(matched_patterns) * 2
-
-    if score >= 2:
-        return (
-            True,
-            f"Matched keywords={matched_keywords}, patterns={matched_patterns}",
-        )
-
-    return (
-        False,
-        "No requirement indicators found",
+    content_score, content_reason = content_filter(
+        state.get("chunk_text", "")
     )
+
+    # =====================================================
+    # Total Score
+    # =====================================================
+
+    total_score = metadata_score + content_score
+
+    # =====================================================
+    # Confidence
+    # =====================================================
+
+    if total_score >= HIGH_CONFIDENCE_THRESHOLD:
+        confidence = "HIGH"
+        should_process = True
+
+    elif total_score >= MEDIUM_CONFIDENCE_THRESHOLD:
+        confidence = "MEDIUM"
+        should_process = True
+
+    else:
+        confidence = "LOW"
+        should_process = False
+
+    # =====================================================
+    # Build Reason
+    # =====================================================
+
+    reasons = []
+
+    if metadata_reason:
+        reasons.append(f"Metadata: {metadata_reason}")
+
+    if content_reason:
+        reasons.append(f"Content: {content_reason}")
+
+    # =====================================================
+    # Return State Updates
+    # =====================================================
+
+    return {
+        "filter_score": total_score,
+        "filter_confidence": confidence,
+        "should_process": should_process,
+        "filter_reason": " | ".join(reasons),
+    }
