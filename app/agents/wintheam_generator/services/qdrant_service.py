@@ -5,9 +5,21 @@ from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
-from sentence_transformers import CrossEncoder
 
 load_dotenv()
+
+
+def _load_cross_encoder(model_name: str):
+    """Load the optional native reranker only when Win Theme retrieval runs."""
+    try:
+        from sentence_transformers import CrossEncoder
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "Unable to load the Win Theme cross-encoder reranker. Verify the "
+            "sentence-transformers/scikit-learn installation and local Application "
+            "Control policy."
+        ) from exc
+    return CrossEncoder(model_name)
 
 
 class CompanyRetriever:
@@ -26,7 +38,7 @@ class CompanyRetriever:
             api_key=os.getenv("OPENAI_API_KEY"),
         )
 
-        self.reranker = CrossEncoder(reranker_model_name)
+        self.reranker = _load_cross_encoder(reranker_model_name)
 
         self.collection_name = collection_name or os.getenv(
             "QDRANT_COLLECTION_NAME"

@@ -13,15 +13,15 @@ from app.infrastructure.load_llms import create_llm
 llm = create_llm()
 
 # CONSTITUTION_PATH & SPECIFICATION_PATH files
-CONSTITUTION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_extractor\input_files\constitution.md")
+CONSTITUTION_PATH = Path(r"app\agents\wintheam_extractor\input_files\constitution.md")
 
-SPECIFICATION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_extractor\input_files\specification.md")
+SPECIFICATION_PATH = Path(r"app\agents\wintheam_extractor\input_files\specification.md")
 
-SYSTEM_PROMPT_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_extractor\input_files\system_prompt.md")
+SYSTEM_PROMPT_PATH = Path(r"app\agents\wintheam_extractor\input_files\system_prompt.md")
 
 CONSTITUTION = read_markdown_file(CONSTITUTION_PATH, "Constitution")
 
-SPECIFICATION = read_markdown_file(CONSTITUTION_PATH, "Specification")
+SPECIFICATION = read_markdown_file(SPECIFICATION_PATH, "Specification")
 
 SYSTEM_PROMPT = read_markdown_file(SYSTEM_PROMPT_PATH, "System Prompt")
 

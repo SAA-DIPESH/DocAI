@@ -9,6 +9,7 @@ langchain-openai
 langchain-groq
 langchain-mistralai
 langchain-ollama
+openai>=2.45
 
 # Environment Variables
 python-dotenv
@@ -28,7 +29,7 @@ qdrant-client
 
 # Mongo
 pymongo
-
+sentence-transformers
 
 
 
@@ -49,8 +50,7 @@ python-dotenv
 pydantic
 langchain
 langgraph
-openai
 qdrant-client
-requests
+requests>=2.31
 pymongo
 pytest
