@@ -11,14 +11,14 @@ logger = Logging(
 )
 
 router = APIRouter(  
-    prefix="/api/v1/agents/requirements",
+    prefix="/api/v1/agents",
     tags=["Requirement Agent"],
 )
 
 service = RequirementService()
 
 
-@router.post("/process")
+@router.post("/get_requirements")
 async def process_requirement(
     request: RequirementRequest,
 ):
