@@ -29,19 +29,7 @@ qdrant-client
 # Mongo
 pymongo
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+sentence_transformer
 
 fastapi
 uvicorn

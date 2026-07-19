@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from app.infrastructure.secrets import secret_manager
 from bson import ObjectId
 import os
-
+from DocAI.app.infrastructure.token_usage_logger import TokenUsageCallback
 
 
 load_dotenv()
@@ -22,6 +22,7 @@ finally:
 
 def create_llm():
 
+
     provider = os.getenv("LLM_PROVIDER").lower()
 
     if provider == "mistral":
@@ -29,12 +30,13 @@ def create_llm():
             model=os.getenv("MISTRAL_MODEL"),
             api_key=os.getenv("MISTRAL_API_KEY"),
             temperature=0.3,
+
         )
 
     elif provider == "openai":
         return ChatOpenAI(
             model=os.getenv("OPENAI_MODEL"),
-            api_key=openai_api_key, # if you don't want to use encrypted key than use --> os.getenv("OPENAI_API_KEY")
+            api_key=openai_api_key,
             temperature=0.3,
         )
 
