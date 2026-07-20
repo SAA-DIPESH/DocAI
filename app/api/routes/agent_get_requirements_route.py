@@ -10,15 +10,15 @@ logger = Logging(
     source_module="agent_requirement_route",
 )
 
-router = APIRouter(
-    prefix="/api/v1/agents/requirements",
+router = APIRouter(  
+    prefix="/api/v1/agents",
     tags=["Requirement Agent"],
 )
 
 service = RequirementService()
 
 
-@router.post("/process")
+@router.post("/get_requirements")
 async def process_requirement(
     request: RequirementRequest,
 ):
@@ -28,17 +28,13 @@ async def process_requirement(
         event_type="RequirementProcessingStarted",
     )
 
-    status = (
-        "Regenerating"
-        if str(request.IsRegenerate).lower() == "true"
-        else "Active"
-    )
+    status = "Regenerating" if request.IsRegenerate else "Active"
 
     try:
 
         result = await service.process_tender(
-            company_id=request.company_id,
-            tender_id=request.tender_id,
+            company_id=request.CompanyId,
+            tender_id=request.TenderId,
             user_id=request.UserId,
             user_name=request.UserName,
             status=status,
@@ -50,8 +46,8 @@ async def process_requirement(
             message="Requirement processing completed",
             event_type="RequirementProcessingCompleted",
             payload={
-                "company_id": request.company_id,
-                "tender_id": request.tender_id,
+                "company_id": request.CompanyId,
+                "tender_id": request.TenderId,
                 "status": result.get("status"),
                 "total_chunks": result.get("total_chunks"),
                 "processed_chunks": result.get("processed_chunks"),
@@ -68,8 +64,8 @@ async def process_requirement(
             message="Requirement processing failed",
             event_type="RequirementProcessingFailed",
             payload={
-                "company_id": request.company_id,
-                "tender_id": request.tender_id,
+                "company_id": request.CompanyId,
+                "tender_id": request.TenderId,
                 "error": str(ex),
             },
         )

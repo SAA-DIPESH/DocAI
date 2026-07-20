@@ -16,13 +16,29 @@ logger = Logging(
 
 class RequirementService:
 
-    def __init__(self,processing_batch_size: int = 10,max_concurrency: int = 10) -> None:
+    def __init__(
+        self,
+        processing_batch_size: int = 25,
+        max_concurrency: int = 20,
+        batch_parallelism: int = 4,
+    ) -> None:
 
         self.processing_batch_size = processing_batch_size
         self.max_concurrency = max_concurrency
 
+        # Number of batches that can run simultaneously
+        self.batch_semaphore = asyncio.Semaphore(
+            batch_parallelism
+        )
+
     @staticmethod
-    def create_initial_state(chunk: Dict[str, Any],company_id: str,user_id: str,user_name: str,status: str)-> TenderRequirementState:
+    def create_initial_state(
+        chunk: Dict[str, Any],
+        company_id: str,
+        user_id: str,
+        user_name: str,
+        status: str,
+    ) -> TenderRequirementState:
 
         return {
             "company_id": company_id,
@@ -37,13 +53,54 @@ class RequirementService:
             "heading": chunk.get("related_section"),
             "chunk_text": chunk["text"],
             "requirements": [],
-            "status": status,                  # Business Status
             "workflow_status": "pending",
             "error": None,
             "node_latencies": {},
         }
 
-    async def process_tender(self,company_id: str,tender_id: str,user_id: str,user_name: str,status: str)-> Dict[str, Any]:
+    async def process_batch(
+        self,
+        batch,
+        company_id: str,
+        user_id: str,
+        user_name: str,
+        status: str,
+    ):
+        """
+        Process a single batch.
+
+        Semaphore ensures only a limited number of
+        of batches execute simultaneously.
+        """
+
+        async with self.batch_semaphore:
+
+            states = [
+                self.create_initial_state(
+                    chunk=chunk,
+                    company_id=company_id,
+                    user_id=user_id,
+                    user_name=user_name,
+                    status=status,
+                )
+                for chunk in batch
+            ]
+
+            return await tender_requirement_graph.abatch(
+                states,
+                config={
+                    "max_concurrency": self.max_concurrency,
+                },
+            )
+
+    async def process_tender(
+        self,
+        company_id: str,
+        tender_id: str,
+        user_id: str,
+        user_name: str,
+        status: str,
+    ) -> Dict[str, Any]:
 
         tracking_token = logger.start(
             message="Tender processing started",
@@ -58,34 +115,41 @@ class RequirementService:
 
             chunks = retrieval_result["chunks"]
 
-            all_results = []
+            # ----------------------------------------------------
+            # Create Tasks
+            # ----------------------------------------------------
 
-            for batch in create_batches(
-                chunks,
-                self.processing_batch_size,
-            ):
-
-                states = [
-                    self.create_initial_state(
-                        chunk=chunk,
-                        company_id=company_id,
-                        user_id=user_id,
-                        user_name=user_name,
-                        status=status,
-                    )
-                    for chunk in batch
-                ]
-
-                results = await tender_requirement_graph.abatch(
-                    states,
-                    config={
-                        "max_concurrency": self.max_concurrency,
-                    },
+            tasks = [
+                self.process_batch(
+                    batch=batch,
+                    company_id=company_id,
+                    user_id=user_id,
+                    user_name=user_name,
+                    status=status,
                 )
+                for batch in create_batches(
+                    chunks,
+                    self.processing_batch_size,
+                )
+            ]
 
-                all_results.extend(results)
+            # ----------------------------------------------------
+            # Execute batches in parallel
+            # ----------------------------------------------------
 
-            status = (
+            batch_results = await asyncio.gather(*tasks)
+
+            # ----------------------------------------------------
+            # Flatten results
+            # ----------------------------------------------------
+
+            all_results = [
+                result
+                for batch in batch_results
+                for result in batch
+            ]
+
+            business_status = (
                 "Completed"
                 if len(all_results) == len(chunks)
                 else "PartiallyCompleted"
@@ -96,7 +160,7 @@ class RequirementService:
                 "TenderId": tender_id,
                 "TotalChunks": len(chunks),
                 "ProcessedChunks": len(all_results),
-                "Status": status,
+                "Status": business_status,
                 "Chunks": all_results,
             }
 
@@ -110,7 +174,7 @@ class RequirementService:
                     "tender_id": tender_id,
                     "total_chunks": len(chunks),
                     "processed_chunks": len(all_results),
-                    "status": status,
+                    "status": business_status,
                 },
             )
 

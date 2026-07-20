@@ -200,6 +200,6 @@ Use:
     "Project Manager",
     "24x7 Support"
   ],
-  "Confidence": 0.98
+  "Confidence": 
 }
 ```
