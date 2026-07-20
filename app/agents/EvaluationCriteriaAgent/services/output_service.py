@@ -12,19 +12,38 @@ class EvaluationCriteriaOutputService:
     collection_name = "EvaluationCriteria"
 
     @classmethod
-    def save(cls, output: dict[str, Any]) -> str:
-        identity = {
-            "CompanyId": output.get("CompanyId"),
-            "TenderId": output.get("TenderId"),
-        }
-        if not identity["CompanyId"] or not identity["TenderId"]:
-            raise ValueError("CompanyId and TenderId are required for MongoDB persistence.")
+    def save(
+        cls,
+        output: dict[str, Any],
+        is_regenerated: bool,
+        created_by: str,
+        run_id: str,
+    ) -> str:
+        if not output.get("CompanyId") or not output.get("TenderId"):
+            raise ValueError(
+                "CompanyId and TenderId are required for MongoDB persistence."
+            )
+    
+        document = dict(output)
+    
+        if is_regenerated:
+            document["Status"] = "Regenerating"
+        else:
+            document["Status"] = "Active"
+    
+        document["IsRegenerated"] = is_regenerated
+        document["CreatedBy"] = created_by
+        document["CreatedAt"] = datetime.now(timezone.utc)
+        document["RunId"] = run_id
+    
         store = MongoDocumentStore(cls.collection_name)
+    
         try:
-            return store.upsert(identity, output)
+            # Always creates a new MongoDB document.
+            return store.insert(document)
         finally:
             store.close()
-
+            
     @classmethod
     def insert_regenerated(
         cls,
@@ -33,7 +52,7 @@ class EvaluationCriteriaOutputService:
         run_id: str,
     ) -> tuple[str, dict[str, Any]]:
         document = dict(output)
-        document["Status"] = "regenerating"
+        document["Status"] = "Regenerating"
         document["CreatedBy"] = created_by
         document["CreatedAt"] = datetime.now(timezone.utc)
         document["RunId"] = run_id
@@ -80,7 +99,7 @@ class EvaluationCriteriaOutputService:
                 {
                     "CompanyId": company_id,
                     "TenderId": tender_id,
-                    "Status": "active",
+                    "Status": "Active",
                 }
             )
         finally:
