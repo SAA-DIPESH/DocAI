@@ -337,8 +337,8 @@ class ContextBuilder:
             },
             {
                 "_id": 0,
-                "FinalJson.ProposalGroups.Sections": 1,
-                "FinalJson.ProposalGroups.GroupName": 1,
+                "JsonOutput.ProposalGroups.Sections": 1,
+                "JsonOutput.ProposalGroups.GroupName": 1,
             },
         )
 
@@ -348,7 +348,7 @@ class ContextBuilder:
             return sections
 
         proposal_groups = (
-            document.get("FinalJson", {})
+            document.get("JsonOutput", {})
             .get("ProposalGroups", [])
         )
 
@@ -392,18 +392,18 @@ class ContextBuilder:
                     }
                 },
                 {
-                    "$unwind": "$FinalJson.CanonicalRequirements"
+                    "$unwind": "$JsonOutput.CanonicalRequirements"
                 },
                 {
                     "$match": {
-                        "FinalJson.CanonicalRequirements.CanonicalRequirementId": {
+                        "JsonOutput.CanonicalRequirements.CanonicalRequirementId": {
                             "$in": requirement_ids
                         }
                     }
                 },
                 {
                     "$replaceRoot": {
-                        "newRoot": "$FinalJson.CanonicalRequirements"
+                        "newRoot": "$JsonOutput.CanonicalRequirements"
                     }
                 },
             ]
@@ -555,11 +555,11 @@ class ContextBuilder:
             )
             or document.get("Criteria")
             or document.get(
-                "FinalJson",
+                "JsonOutput",
                 {},
             ).get("EvaluationCriteria")
             or document.get(
-                "FinalJson",
+                "JsonOutput",
                 {},
             ).get("Criteria")
             or []

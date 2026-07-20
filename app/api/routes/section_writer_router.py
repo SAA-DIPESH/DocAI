@@ -18,7 +18,7 @@ logger = Logging(
 )
 
 
-ProposalRepository=ProposalSummaryRepository()
+# ProposalRepository=ProposalSummaryRepository()
 
 
 
@@ -228,9 +228,10 @@ async def generate_proposal(
         
         # Save Proposal Summary (Fixed Indentation Here)
         try:
-            proposal_repository = ProposalRepository()
+            proposal_repository = ProposalSummaryRepository()
 
             proposal_repository.save_proposal_summary(
+                
                 
                 response=result,
                 is_regenerate=request.isRegenerate,
