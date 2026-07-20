@@ -225,6 +225,21 @@ async def generate_proposal(
         result = await proposal_generation_graph.ainvoke(initial_state)
         generation_context = result.get("generation_context", {})
         proposal_plan_id = generation_context.get("ProposalPlanId")
+        proposal_id = generation_context.get("ProposalId") or proposal_plan_id
+
+        if not proposal_plan_id:
+            source_status = generation_context.get("SourceStatus")
+            expected_status = "Regenerating" if request.is_regenerate else "Active"
+            status_detail = (
+                f" Checked status: {source_status or expected_status}."
+            )
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "No proposal plan found for the supplied CompanyId and TenderId."
+                    f"{status_detail}"
+                ),
+            )
 
         result.update(
             {
@@ -234,6 +249,7 @@ async def generate_proposal(
                 "user_name": request.user_name,
                 "project_id": request.project_id,
                 "proposal_plan_id": proposal_plan_id,
+                "proposal_id": proposal_id,
             }
         )
         
@@ -270,6 +286,9 @@ async def generate_proposal(
             "status": "success",
             "data": result,
         }
+
+    except HTTPException:
+        raise
 
     except Exception as ex:
         duration_ms = int((time.perf_counter() - start_time) * 1000)
