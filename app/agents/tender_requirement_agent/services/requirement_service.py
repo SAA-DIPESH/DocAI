@@ -57,6 +57,49 @@ class RequirementService:
             "error": None,
             "node_latencies": {},
         }
+    
+
+    @staticmethod
+    def aggregate_token_usage(results):
+
+        total_usage = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "models": {},
+        }
+
+        for result in results:
+
+            usage = result.get("token_usage")
+
+            if not usage:
+                continue
+
+            total_usage["input_tokens"] += usage.get("input_tokens", 0)
+            total_usage["output_tokens"] += usage.get("output_tokens", 0)
+            total_usage["total_tokens"] += usage.get("total_tokens", 0)
+
+            for model, model_usage in usage.get("models", {}).items():
+
+                if model not in total_usage["models"]:
+                    total_usage["models"][model] = {
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "total_tokens": 0,
+                    }
+
+                total_usage["models"][model]["input_tokens"] += model_usage.get(
+                    "input_tokens", 0
+                )
+                total_usage["models"][model]["output_tokens"] += model_usage.get(
+                    "output_tokens", 0
+                )
+                total_usage["models"][model]["total_tokens"] += model_usage.get(
+                    "total_tokens", 0
+                )
+
+        return total_usage
 
     async def process_batch(
         self,
@@ -149,6 +192,10 @@ class RequirementService:
                 for result in batch
             ]
 
+            total_token_usage = self.aggregate_token_usage(
+                    all_results
+                )
+
             business_status = (
                 "Completed"
                 if len(all_results) == len(chunks)
@@ -161,6 +208,7 @@ class RequirementService:
                 "TotalChunks": len(chunks),
                 "ProcessedChunks": len(all_results),
                 "Status": business_status,
+                "TokenUsage": total_token_usage,
                 "Chunks": all_results,
             }
 
