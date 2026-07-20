@@ -5,8 +5,6 @@ from dotenv import load_dotenv
 from app.infrastructure.secrets import secret_manager
 from bson import ObjectId
 import os
-from app.infrastructure.token_usage_logger import TokenUsageCallback
-
 
 load_dotenv()
 
