@@ -872,6 +872,9 @@ def _execute(
     args: argparse.Namespace,
     usage_context: dict[str, Any] | None = None,
     persist: bool = True,
+    is_regenerated: bool = False,
+    created_by: str = "",
+    run_id: str = "",
 ) -> dict[str, Any] | None:
     require_args(args)
     _print_header(args)
@@ -937,10 +940,17 @@ def _execute(
             EvaluationCriteriaOutputService,
         )
 
-        mongo_document_id = EvaluationCriteriaOutputService.save(final_output)
+        mongo_document_id = EvaluationCriteriaOutputService.save(
+            output=final_output,
+            is_regenerated=is_regenerated,
+            created_by=created_by,
+            run_id=run_id,
+        )
         logging.info(
-            "Saved evaluation output to MongoDB | collection=EvaluationCriteria | document_id=%s",
+            "Saved evaluation output to MongoDB | "
+            "collection=EvaluationCriteria | document_id=%s | status=%s",
             mongo_document_id,
+            "Regenerating" if is_regenerated else "Active",
         )
     _separator()
     logging.info("Completed Successfully | total_time=%.2fs", time.perf_counter() - total_started)
@@ -961,13 +971,25 @@ class EvaluationCriteriaAgent:
     def execute(
         company_id: str,
         tender_id: str,
+        is_regenerated: bool = False,
+        created_by: str = "",
+        run_id: str = "",
         usage_context: dict[str, Any] | None = None,
         persist: bool = True,
     ) -> dict[str, Any]:
         args = parse_args([])
         args.company_id = company_id
         args.tender_id = tender_id
-        output = _execute(args, usage_context=usage_context, persist=persist)
+
+        output = _execute(
+            args=args,
+            usage_context=usage_context,
+            persist=persist,
+            is_regenerated=is_regenerated,
+            created_by=created_by,
+            run_id=run_id,
+        )
+
         if output is None:
             raise RuntimeError("Evaluation Criteria execution did not produce a final output.")
         return output

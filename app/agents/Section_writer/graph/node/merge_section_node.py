@@ -4,6 +4,12 @@ from app.agents.Section_writer.schemas.state import ProposalGenerationState,Sect
 
 
 def _total_token_usage(*usages: Dict[str, Any]) -> Dict[str, Any]:
+    model = ""
+    for usage in usages:
+        if usage.get("model"):
+            model = usage["model"]
+            break
+
     return {
         "input_tokens": sum(
             int(usage.get("input_tokens", 0) or 0)
@@ -17,6 +23,7 @@ def _total_token_usage(*usages: Dict[str, Any]) -> Dict[str, Any]:
             int(usage.get("total_tokens", 0) or 0)
             for usage in usages
         ),
+        "model": model,
     }
 
 

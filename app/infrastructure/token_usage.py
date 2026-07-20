@@ -291,21 +291,33 @@ class TokenUsageService:
         usage_type: str = "Completion",
         method: str = "LLM",
     ):
+        def request_value(*names: str):
+            for name in names:
+                value = getattr(request, name, None)
+                if value is not None and str(value).strip():
+                    return value
+            return None
+
+        tender_id = request_value("tender_id", "tenderId", "TenderId")
+        company_id = request_value("company_id", "companyId", "CompanyId")
+        user_id = request_value("user_id", "userId", "UserId")
+        project_id = request_value("project_id", "projectId", "ProjectId")
+
         source_ids = []
 
-        if getattr(request, "tenderId", None):
+        if tender_id:
             source_ids.append(
                 {
                     "sourceIdType": "Tender",
-                    "id": request.tenderId,
+                    "id": tender_id,
                 }
             )
 
-        if getattr(request, "companyId", None):
+        if company_id:
             source_ids.append(
                 {
                     "sourceIdType": "Company",
-                    "id": request.companyId,
+                    "id": company_id,
                 }
             )
 
@@ -313,7 +325,7 @@ class TokenUsageService:
             "applicationName": application_name,
             "sourceIds": source_ids,
             "runId": correlation_id,
-            "userId": request.userId or os.getenv("AI_USAGE_USER_ID", ""),
+            "userId": user_id or os.getenv("AI_USAGE_USER_ID", ""),
             "purpose": purpose,
             "method": method,
             "agentName": agent_name,
@@ -328,13 +340,9 @@ class TokenUsageService:
                 input_tokens=token_usage.get("input_tokens", 0),
                 output_tokens=token_usage.get("output_tokens", 0),
             ),
-            "companyId": getattr(request, "companyId", None),
-            "tenderId": getattr(request, "tenderId", None),
-            "projectId": getattr(
-                request,
-                "projectId",
-                os.getenv("AI_USAGE_PROJECT_ID"),
-            ),
+            "companyId": company_id,
+            "tenderId": tender_id,
+            "projectId": project_id or os.getenv("AI_USAGE_PROJECT_ID"),
         }
 
         return await TokenUsageService.log_usage(
@@ -643,21 +651,33 @@ class TokenUsageService:
         usage_type: str = "Completion",
         method: str = "LLM",
     ):
+        def request_value(*names: str):
+            for name in names:
+                value = getattr(request, name, None)
+                if value is not None and str(value).strip():
+                    return value
+            return None
+
+        tender_id = request_value("tender_id", "tenderId", "TenderId")
+        company_id = request_value("company_id", "companyId", "CompanyId")
+        user_id = request_value("user_id", "userId", "UserId")
+        project_id = request_value("project_id", "projectId", "ProjectId")
+
         source_ids = []
 
-        if getattr(request, "tenderId", None):
+        if tender_id:
             source_ids.append(
                 {
                     "sourceIdType": "Tender",
-                    "id": request.tenderId,
+                    "id": tender_id,
                 }
             )
 
-        if getattr(request, "companyId", None):
+        if company_id:
             source_ids.append(
                 {
                     "sourceIdType": "Company",
-                    "id": request.companyId,
+                    "id": company_id,
                 }
             )
 
@@ -665,7 +685,7 @@ class TokenUsageService:
             "applicationName": application_name,
             "sourceIds": source_ids,
             "runId": correlation_id,
-            "userId": request.userId or os.getenv("AI_USAGE_USER_ID", ""),
+            "userId": user_id or os.getenv("AI_USAGE_USER_ID", ""),
             "purpose": purpose,
             "method": method,
             "agentName": agent_name,
@@ -680,13 +700,9 @@ class TokenUsageService:
                 input_tokens=token_usage.get("input_tokens", 0),
                 output_tokens=token_usage.get("output_tokens", 0),
             ),
-            "companyId": getattr(request, "companyId", None),
-            "tenderId": getattr(request, "tenderId", None),
-            "projectId": getattr(
-                request,
-                "projectId",
-                os.getenv("AI_USAGE_PROJECT_ID"),
-            ),
+            "companyId": company_id,
+            "tenderId": tender_id,
+            "projectId": project_id or os.getenv("AI_USAGE_PROJECT_ID"),
         }
 
         return await TokenUsageService.log_usage(

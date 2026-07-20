@@ -187,7 +187,6 @@ async def generate_proposal(
     
 ):
     start_time = time.perf_counter()
-    request.isRegenerate
 
     correlation_id = str(uuid.uuid4())
 
@@ -212,8 +211,7 @@ async def generate_proposal(
         initial_state: ProposalGenerationState = {
             "company_id": request.company_id,
             "tender_id": request.tender_id,
-            "is_regenerate": request.isRegenerate,
-            # "proposal_plan_id": request.proposal_plan_id,
+            "is_regenerate": request.is_regenerate,
             "user_id": request.user_id,
             "workflow_metadata": {
                 "workflow_status": "Started",
@@ -225,16 +223,28 @@ async def generate_proposal(
         }
 
         result = await proposal_generation_graph.ainvoke(initial_state)
+        generation_context = result.get("generation_context", {})
+        proposal_plan_id = generation_context.get("ProposalPlanId")
+
+        result.update(
+            {
+                "company_id": request.company_id,
+                "tender_id": request.tender_id,
+                "user_id": request.user_id,
+                "user_name": request.user_name,
+                "project_id": request.project_id,
+                "proposal_plan_id": proposal_plan_id,
+            }
+        )
         
         # Save Proposal Summary (Fixed Indentation Here)
+        proposal_repository = None
         try:
             proposal_repository = ProposalSummaryRepository()
 
             proposal_repository.save_proposal_summary(
-                
-                
                 response=result,
-                is_regenerate=request.isRegenerate,
+                is_regenerate=request.is_regenerate,
             )
         except Exception as ex:
             print(f"Mongo Save Error: {ex}")
@@ -244,6 +254,10 @@ async def generate_proposal(
                 is_success=False,
                 correlation_id=correlation_id,
             )
+            raise
+        finally:
+            if proposal_repository:
+                proposal_repository.close()
 
         logger.log(
             message="Proposal generated successfully",
@@ -291,11 +305,11 @@ async def generate_proposal(
                     model = usage.get("model", "")
 
         access_token = (
-            http_request.headers.get("Authorization", "")
-            .removeprefix("Bearer ")
-            .strip()
+            request.jwt_token
+            or http_request.headers.get("Authorization", "")
             or os.getenv("AI_USAGE_BEARER_TOKEN")
-        )
+            or ""
+        ).removeprefix("Bearer ").strip()
 
         if total_tokens > 0:
             try:
@@ -341,7 +355,7 @@ async def generate_proposal_stream(
     initial_state = {
         "company_id": request.company_id,
         "tender_id": request.tender_id,
-        # "proposal_plan_id": request.proposal_plan_id,
+        "is_regenerate": request.is_regenerate,
         "user_id": request.user_id,
         "workflow_metadata": {
             "workflow_status": "Started",
