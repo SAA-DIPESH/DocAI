@@ -9,7 +9,7 @@ from app.agents.tender_requirement_agent.services.requirement_repository_mongo i
     requirement_repository,
 )
 from app.agents.tender_requirement_agent.utils.helper import update_latency
-from app.services.token_usage_service import TokenUsageService
+from app.infrastructure.token_usage_logger import TokenUsageService
 
 
 async def _process_requirement(

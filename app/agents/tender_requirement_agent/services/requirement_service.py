@@ -18,7 +18,7 @@ class RequirementService:
 
     def __init__(
         self,
-        processing_batch_size: int = 25,
+        processing_batch_size: int = 20,
         max_concurrency: int = 20,
         batch_parallelism: int = 4,
     ) -> None:

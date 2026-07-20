@@ -10,8 +10,7 @@ from app.agents.tender_requirement_agent.graph.agent_state import (
 from app.agents.tender_requirement_agent.utils.helper import (
     update_latency,
 )
-from app.services.token_usage_service import TokenUsageService
-
+from app.infrastructure.token_usage_logger import TokenUsageService
 
 async def detect_and_extract_requirements_node(
     state: TenderRequirementState,
