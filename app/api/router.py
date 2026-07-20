@@ -7,6 +7,9 @@ from app.api.routes.wintheam_extractor_route import router as wintheam_extractor
 from app.api.routes.wintheam_generator_route import router as wintheam_generator_router
 from app.agents.taxonomy_agent.app.api.routes.router import router as taxonomy_router
 from app.agents.GrammerAI.app.api.router.routes import router as grammar_router
+from app.agents.TenderSectionPlanner.section_planner.api import (
+    router as tender_section_planner_router,
+)
 
 api_router = APIRouter()
 
@@ -31,3 +34,6 @@ api_router.include_router(wintheam_extractor_router)
 
 # Win Theme Generator Routes
 api_router.include_router(wintheam_generator_router)
+
+# Tender Section Planner Routes
+api_router.include_router(tender_section_planner_router, prefix="/api/v1/agents")
