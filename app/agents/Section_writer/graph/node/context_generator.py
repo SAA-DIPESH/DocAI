@@ -10,6 +10,7 @@ async def context_builder_node(state):
     context = builder.build_context(
         company_id=state["company_id"],
         tender_id=state["tender_id"],
+        is_regenerate=state["is_regenerate"],
        
     )
 

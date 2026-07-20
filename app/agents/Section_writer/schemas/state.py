@@ -63,6 +63,7 @@ class ProposalGenerationState(TypedDict):
     company_id: str
     tender_id: str
     user_id: str
+    is_regenerate: bool
 
     generation_context: dict
 
