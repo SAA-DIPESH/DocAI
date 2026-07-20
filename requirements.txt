@@ -54,3 +54,5 @@ qdrant-client
 requests>=2.31
 pymongo
 pytest
+langgraph
+langchain_groq

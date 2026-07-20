@@ -90,10 +90,26 @@ Define a strict separation between client-visible proposal text and internal evi
       "GeneratedSubSections": []
     }
   ],
+  "EvaluationCriteria": [
+    {
+      "CriterionId": "",
+      "CriterionName": "",
+      "Addressed": true,
+      "HowAddressed": ""
+    }
+  ],
   "InternalReview": {
     "CoverageStatus": "Complete",
     "EvidenceGap": false,
     "PublicationStatus": "Ready",
+    "RequirementCoverage": [
+      {
+        "RequirementId": "",
+        "RequirementText": "",
+        "Covered": true,
+        "CoverageLocation": "Section|SubSection"
+      }
+    ],
     "MissingEvidence": [
       {
         "RequirementId": "",
@@ -105,6 +121,12 @@ Define a strict separation between client-visible proposal text and internal evi
         "RecommendedResolution": ""
       }
     ],
+    "UnsupportedClaims": [
+      {
+        "Claim": "",
+        "Reason": ""
+      }
+    ],
     "Traceability": [
       {
         "RequirementId": "",
@@ -112,9 +134,18 @@ Define a strict separation between client-visible proposal text and internal evi
         "EvidenceChunkIds": [],
         "ApprovedCommitmentReferences": []
       }
-    ]
+    ],
+    "QualityChecks": {
+      "RequirementsCovered": true,
+      "EvaluationCriteriaCovered": true,
+      "EvidenceGrounded": true,
+      "NoHallucinations": true,
+      "CaseStudyIncluded": true,
+      "WinThemesIncluded": true
+    }
   }
 }
+
 ```
 
 ## ENUMERATIONS
