@@ -6,7 +6,6 @@ from app.infrastructure.secrets import secret_manager
 from bson import ObjectId
 import os
 
-
 load_dotenv()
 
 # =====================================================
