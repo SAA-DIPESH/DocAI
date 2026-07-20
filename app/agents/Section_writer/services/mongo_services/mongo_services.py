@@ -17,6 +17,14 @@ def _required_env(*names: str) -> str:
     raise ValueError(f"{joined_names} is required for Section Writer MongoDB context.")
 
 
+def _first_non_empty(source: Dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = source.get(key)
+        if value:
+            return value
+    return None
+
+
 # class ContextBuilder:
 
 #     def __init__(self):
@@ -336,7 +344,12 @@ class ContextBuilder:
                 "Status": status,
             },
             {
-                "_id": 0,
+                "_id": 1,
+                "ProposalPlanId": 1,
+                "proposalPlanId": 1,
+                "proposal_plan_id": 1,
+                "ProposalId": 1,
+                "proposalId": 1,
                 "JsonOutput.ProposalGroups.Sections": 1,
                 "JsonOutput.ProposalGroups.GroupName": 1,
             },
@@ -363,6 +376,43 @@ class ContextBuilder:
                 sections.append(section)
 
         return sections
+
+    def get_proposal_plan_id(
+        self,
+        tender_id: str,
+        company_id: str,
+        status: str,
+    ) -> str:
+        document = self.section_collection.find_one(
+            {
+                "TenderId": tender_id,
+                "CompanyId": company_id,
+                "Status": status,
+            },
+            {
+                "_id": 1,
+                "ProposalPlanId": 1,
+                "proposalPlanId": 1,
+                "proposal_plan_id": 1,
+                "ProposalId": 1,
+                "proposalId": 1,
+            },
+        )
+
+        if not document:
+            return ""
+
+        proposal_plan_id = _first_non_empty(
+            document,
+            "ProposalPlanId",
+            "proposalPlanId",
+            "proposal_plan_id",
+            "ProposalId",
+            "proposalId",
+            "_id",
+        )
+
+        return str(proposal_plan_id or "")
 
     def add_evidence_summary(
         self,
@@ -607,6 +657,11 @@ class ContextBuilder:
             company_id=company_id,
             status=status,
         )
+        proposal_plan_id = self.get_proposal_plan_id(
+            tender_id=tender_id,
+            company_id=company_id,
+            status=status,
+        )
 
         sections = self.add_evidence_summary(
             sections=sections,
@@ -622,6 +677,7 @@ class ContextBuilder:
         )
 
         return {
+            "ProposalPlanId": proposal_plan_id,
             "Sections": sections,
             "WinThemes": self.get_win_themes(
                 company_id=company_id,
