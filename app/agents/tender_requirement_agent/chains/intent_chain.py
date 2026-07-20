@@ -74,8 +74,6 @@ Requirement:
 {requirement}
 
 Return ONLY valid JSON.
-
-Return ONLY valid JSON.
 """
         ),
     ]
@@ -85,11 +83,9 @@ Return ONLY valid JSON.
 # Chain
 # ==========================================================
 
-INTENT_CHAIN = (
-    INTENT_PROMPT
-    | llm
-    | JsonOutputParser()
-)
+LLM_CHAIN = INTENT_PROMPT | llm
+
+PARSER = JsonOutputParser()
 
 # ==========================================================
 # Wrapper
@@ -100,9 +96,9 @@ async def understand_intent(
     requirement_type: str,
     requirement_strength: str,
     heading: str | None,
-) -> dict:
+):
 
-    return await INTENT_CHAIN.ainvoke(
+    raw_response = await LLM_CHAIN.ainvoke(
         {
             "system_prompt": INTENT_SYSTEM_PROMPT,
             "constitution": INTENT_CONSTITUTION,
@@ -113,3 +109,7 @@ async def understand_intent(
             "requirement_strength": requirement_strength,
         }
     )
+
+    parsed_response = PARSER.invoke(raw_response)
+
+    return raw_response, parsed_response

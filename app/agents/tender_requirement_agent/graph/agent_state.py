@@ -11,6 +11,19 @@ class Requirement(TypedDict, total=False):
     error: Optional[str]
 
 
+
+class ModelTokenUsage(TypedDict):
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+
+
+class TokenUsage(TypedDict):
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+    models: Dict[str, ModelTokenUsage]
+
 class TenderRequirementState(TypedDict, total=False):
     # =========================================================
     # Tender Metadata
@@ -72,6 +85,10 @@ class TenderRequirementState(TypedDict, total=False):
 
     current_step: str
     next_step: str
+
+
+    # Token Usage
+    token_usage: TokenUsage
 
     # =========================================================
     # Error Handling
