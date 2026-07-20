@@ -8,30 +8,10 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from app.agents.wintheam_extractor.input_files.validation_prompt import VALIDATION_SYSTEM_PROMPT
+from app.agents.wintheam_extractor.graph.chains.validator_chain import VALIDATION_CHAIN
 from app.infrastructure.load_llms import create_llm
-# from app.utils.token_usage_logger import extract_token_usage, TokenUsageService
 
-# Load LLM
-llm = create_llm()
 
-VALIDATION_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", VALIDATION_SYSTEM_PROMPT),
-        (
-            "human",
-            """
-Validate the following retrieval plan.
-
-{response}
-""",
-        ),
-    ]
-)
-
-# VALIDATION_CHAIN = VALIDATION_PROMPT| llm | JsonOutputParser()
-VALIDATION_LLM_CHAIN = VALIDATION_PROMPT | llm
-VALIDATION_OUTPUT_PARSER  = JsonOutputParser()
 
 def validate_output_node(state: WintheamState):
 
@@ -39,13 +19,11 @@ def validate_output_node(state: WintheamState):
 
     try:
 
-        raw_validation = VALIDATION_LLM_CHAIN.invoke(
+        validation = VALIDATION_CHAIN.invoke(
             {
                 "response": state["response"]
             }
         )
-
-        validation = VALIDATION_OUTPUT_PARSER.invoke(raw_validation)
 
 
         status = validation.get("validation_status", "failed")
@@ -54,22 +32,7 @@ def validate_output_node(state: WintheamState):
 
         score = validation.get("score", 0)
 
-       # Token Usage Logger
-        # usage = extract_token_usage(raw_validation)
-
-        # payload = {
-        #     "agent_name": "WinThemeExtractValidator",
-        #     "company_id": state["company_id"],
-        #     **usage,
-        # }
-
-        # # Save the token
-        # try:
-        #     TokenUsageService.log_usage(payload)
-        # except Exception as log_error:
-        #     print("Error in inserting log for WinThemeExtractValidator", log_error)
-
-
+      
         end = time.perf_counter()
 
         return {

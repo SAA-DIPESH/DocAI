@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tender-section-planner"
+version = "1.0.0"
+requires-python = ">=3.11"
+dependencies = ["fastapi>=0.115", "openai>=2.45", "pydantic>=2.8", "pymongo>=4.8", "python-dotenv>=1.0", "requests>=2.31", "uvicorn>=0.30"]
+
+[tool.setuptools.packages.find]
+include = ["section_planner*"]
+exclude = ["backups*", "tests*"]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "pytest-asyncio>=0.24", "httpx>=0.27", "mongomock>=4.1", "ruff>=0.6"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

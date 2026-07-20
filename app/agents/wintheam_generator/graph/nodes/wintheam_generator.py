@@ -10,6 +10,7 @@ from app.agents.wintheam_generator.graph.agent_state import WinThemeState
 from app.utils.helpers import read_markdown_file
 # from app.infrastructure.load_llms import llm
 from app.infrastructure.load_llms import create_llm
+from app.agents.wintheam_generator.prompts.prompt_loader import CONSTITUTION, SPECIFICATION, SYS_PROMPT
 # from app.utils.token_usage_logger import extract_token_usage, TokenUsageService
 
 # Load LLM
@@ -17,9 +18,9 @@ llm = create_llm()
 
 
 # CONSTITUTION_PATH & SPECIFICATION_PATH files
-CONSTITUTION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\constitution.md").expanduser().resolve()
-SPECIFICATION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\specification.md").expanduser().resolve()
-SYS_PROMPT =  Path( r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\system_prompt.md").expanduser().resolve()
+# CONSTITUTION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\constitution.md").expanduser().resolve()
+# SPECIFICATION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\specification.md").expanduser().resolve()
+# SYS_PROMPT =  Path( r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\system_prompt.md").expanduser().resolve()
 
 def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
     """
@@ -33,14 +34,14 @@ def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
         current_anchor_group = state["current_anchor_group"]
         current_evidence = state.get("current_evidence", [])
 
-        cons_content = read_markdown_file(CONSTITUTION_PATH, file_label="Constitution")
-        spec_content = read_markdown_file(SPECIFICATION_PATH, file_label="Specification")
-        sys_content = read_markdown_file(SYS_PROMPT, file_label="SystemPrompt")
+        # cons_content = read_markdown_file(CONSTITUTION_PATH, file_label="Constitution")
+        # spec_content = read_markdown_file(SPECIFICATION_PATH, file_label="Specification")
+        # sys_content = read_markdown_file(SYS_PROMPT, file_label="SystemPrompt")
 
         formatted_prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content=cons_content),
-            SystemMessage(content=spec_content),
-            SystemMessage(content=sys_content),
+            SystemMessage(content=CONSTITUTION),
+            SystemMessage(content=SPECIFICATION),
+            SystemMessage(content=SYS_PROMPT),
             ("human", """
         Generate one company capability win theme using the following input.
 
