@@ -45,6 +45,7 @@ class ProposalSummaryRepository:
         status = "Regenerating" if is_regenerate else "Active"
         now = datetime.now(timezone.utc)
         proposal_plan_id = response.get("proposal_plan_id")
+        proposal_id = response.get("proposal_id") or proposal_plan_id
 
         if not proposal_plan_id:
             raise ValueError("proposal_plan_id is required to save proposal summary.")
@@ -52,6 +53,7 @@ class ProposalSummaryRepository:
         document = {
             "companyId": response["company_id"],
             "tenderId": response["tender_id"],
+            "proposalId": proposal_id,
             "proposalPlanId": proposal_plan_id,
             "userId": response["user_id"],
             "userName": response["user_name"],
@@ -80,6 +82,10 @@ class ProposalSummaryRepository:
                 "internalReview": generated.get("InternalReview", {}),
             })
 
+        if is_regenerate:
+            self.collection.insert_one(document)
+            return document["proposalId"]
+
         filter_query = {
             "companyId": document["companyId"],
             "tenderId": document["tenderId"],
@@ -89,6 +95,7 @@ class ProposalSummaryRepository:
         set_on_insert = {
             "companyId": document["companyId"],
             "tenderId": document["tenderId"],
+            "proposalId": document["proposalId"],
             "proposalPlanId": document["proposalPlanId"],
             "createdAt": document["createdAt"],
         }
@@ -111,3 +118,4 @@ class ProposalSummaryRepository:
             },
             upsert=True,
         )
+        return None
