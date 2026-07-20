@@ -29,20 +29,8 @@ qdrant-client
 
 # Mongo
 pymongo
-sentence-transformers
 
-
-
-
-
-
-
-
-
-
-
-
-
+sentence_transformer
 
 fastapi
 uvicorn
