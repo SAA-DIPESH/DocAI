@@ -407,12 +407,56 @@ class ContextBuilder:
             "ProposalPlanId",
             "proposalPlanId",
             "proposal_plan_id",
-            "ProposalId",
-            "proposalId",
             "_id",
         )
 
         return str(proposal_plan_id or "")
+
+    def get_proposal_metadata(
+        self,
+        tender_id: str,
+        company_id: str,
+        status: str,
+    ) -> Dict[str, str]:
+        document = self.section_collection.find_one(
+            {
+                "TenderId": tender_id,
+                "CompanyId": company_id,
+                "Status": status,
+            },
+            {
+                "_id": 1,
+                "ProposalPlanId": 1,
+                "proposalPlanId": 1,
+                "proposal_plan_id": 1,
+                "ProposalId": 1,
+                "proposalId": 1,
+            },
+        )
+
+        if not document:
+            return {
+                "ProposalPlanId": "",
+                "ProposalId": "",
+            }
+
+        proposal_plan_id = _first_non_empty(
+            document,
+            "ProposalPlanId",
+            "proposalPlanId",
+            "proposal_plan_id",
+            "_id",
+        )
+        proposal_id = _first_non_empty(
+            document,
+            "ProposalId",
+            "proposalId",
+        )
+
+        return {
+            "ProposalPlanId": str(proposal_plan_id or ""),
+            "ProposalId": str(proposal_id or ""),
+        }
 
     def add_evidence_summary(
         self,
@@ -657,7 +701,7 @@ class ContextBuilder:
             company_id=company_id,
             status=status,
         )
-        proposal_plan_id = self.get_proposal_plan_id(
+        proposal_metadata = self.get_proposal_metadata(
             tender_id=tender_id,
             company_id=company_id,
             status=status,
@@ -677,7 +721,9 @@ class ContextBuilder:
         )
 
         return {
-            "ProposalPlanId": proposal_plan_id,
+            "ProposalPlanId": proposal_metadata["ProposalPlanId"],
+            "ProposalId": proposal_metadata["ProposalId"],
+            "SourceStatus": status,
             "Sections": sections,
             "WinThemes": self.get_win_themes(
                 company_id=company_id,
