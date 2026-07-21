@@ -9,7 +9,7 @@ from app.infrastructure.token_usage_logger import TokenUsageService
 
 
 logger = Logging(
-    agent_name="Requirements_Detection_And_Intent_Agent",
+    agent_name="Requirements_Detection_Extraction_And_Intent_Agent",
     source_module="agent_requirement_route",
 )
 
