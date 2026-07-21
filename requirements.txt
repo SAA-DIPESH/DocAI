@@ -30,7 +30,7 @@ qdrant-client
 # Mongo
 pymongo
 
-sentence_transformer
+sentence-transformers
 
 fastapi
 uvicorn
@@ -43,4 +43,4 @@ requests>=2.31
 pymongo
 pytest
 langgraph
-langchain_groq
+langchain-groq
