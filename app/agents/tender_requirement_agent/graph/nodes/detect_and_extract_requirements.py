@@ -13,11 +13,25 @@ from app.agents.tender_requirement_agent.utils.helper import (
 from app.infrastructure.token_usage_logger import TokenUsageService
 
 
+DEFAULT_TOKEN_USAGE = {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "models": {},
+}
+
+
 async def detect_and_extract_requirements_node(
     state: TenderRequirementState,
 ) -> Dict[str, Any]:
 
     start_time = time.perf_counter()
+
+    # Ensure token_usage always exists
+    token_usage = state.setdefault(
+        "token_usage",
+        DEFAULT_TOKEN_USAGE.copy(),
+    )
 
     try:
 
@@ -25,7 +39,7 @@ async def detect_and_extract_requirements_node(
             chunk_text=state["chunk_text"],
         )
 
-        # Track token usage
+        # Update token usage from LLM response
         TokenUsageService.update_state(
             state,
             raw_response,
@@ -38,7 +52,7 @@ async def detect_and_extract_requirements_node(
 
         return {
             "requirements": requirements,
-            "token_usage": state["token_usage"],
+            "token_usage": state.get("token_usage", token_usage),
             "workflow_status": "processing",
             "current_step": "detect_and_extract_requirements",
             "error": None,
@@ -53,7 +67,7 @@ async def detect_and_extract_requirements_node(
 
         return {
             "requirements": [],
-            "token_usage": state["token_usage"],
+            "token_usage": state.get("token_usage", token_usage),
             "workflow_status": "failed",
             "current_step": "detect_and_extract_requirements",
             "error": str(ex),

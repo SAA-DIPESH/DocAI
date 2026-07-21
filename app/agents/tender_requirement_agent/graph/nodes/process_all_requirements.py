@@ -5,11 +5,17 @@ from typing import Any, Dict
 
 from app.agents.tender_requirement_agent.chains.intent_chain import understand_intent
 from app.agents.tender_requirement_agent.graph.agent_state import TenderRequirementState
-from app.agents.tender_requirement_agent.services.requirement_repository_mongo import (
-    requirement_repository,
-)
+from app.agents.tender_requirement_agent.services.requirement_repository_mongo import requirement_repository
 from app.agents.tender_requirement_agent.utils.helper import update_latency
 from app.infrastructure.token_usage_logger import TokenUsageService
+
+
+DEFAULT_TOKEN_USAGE = {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "models": {},
+}
 
 
 async def _process_requirement(
@@ -40,7 +46,7 @@ async def _process_requirement(
         requirement_strength=result["RequirementStrength"],
     )
 
-    # Extract token usage only
+    # Extract token usage
     usage = TokenUsageService.extract_token_usage(raw_response)
 
     result["IntentResult"] = intent_result
@@ -88,6 +94,12 @@ async def process_requirements_node(
 
     start_time = time.perf_counter()
 
+    # Ensure token_usage always exists
+    token_usage = state.setdefault(
+        "token_usage",
+        DEFAULT_TOKEN_USAGE.copy(),
+    )
+
     try:
 
         requirements = state.get("requirements", [])
@@ -96,7 +108,7 @@ async def process_requirements_node(
             return {
                 "requirements": [],
                 "processed_requirements": 0,
-                "token_usage": state["token_usage"],
+                "token_usage": token_usage,
                 "workflow_status": "completed",
                 "current_step": "process_requirements",
                 "error": None,
@@ -107,7 +119,7 @@ async def process_requirements_node(
                 ),
             }
 
-        # Process all requirements in parallel
+        # Process all requirements concurrently
         results = await asyncio.gather(
             *[
                 _process_requirement(
@@ -119,10 +131,10 @@ async def process_requirements_node(
             ]
         )
 
-        # Merge token usage after all tasks complete
+        # Merge token usage
         for result in results:
             TokenUsageService.merge_usage(
-                state["token_usage"],
+                token_usage,
                 result["usage"],
             )
 
@@ -132,13 +144,13 @@ async def process_requirements_node(
             for result in results
         ]
 
-        # Bulk save to MongoDB
+        # Bulk save
         await asyncio.to_thread(
             requirement_repository.bulk_upsert_requirements,
             mongo_documents,
         )
 
-        # Remove Mongo-only fields from response
+        # Remove internal fields
         response_requirements = [
             {
                 key: value
@@ -156,7 +168,7 @@ async def process_requirements_node(
         return {
             "requirements": response_requirements,
             "processed_requirements": len(response_requirements),
-            "token_usage": state["token_usage"],
+            "token_usage": token_usage,
             "workflow_status": "completed",
             "current_step": "process_requirements",
             "error": None,
@@ -172,7 +184,7 @@ async def process_requirements_node(
         return {
             "requirements": [],
             "processed_requirements": 0,
-            "token_usage": state["token_usage"],
+            "token_usage": token_usage,
             "workflow_status": "failed",
             "current_step": "process_requirements",
             "error": str(ex),

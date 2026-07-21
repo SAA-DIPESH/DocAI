@@ -1,7 +1,7 @@
 import time
 
 from fastapi import APIRouter, HTTPException
-
+import traceback
 from app.agents.tender_requirement_agent.schemas.request import RequirementRequest
 from app.agents.tender_requirement_agent.services.requirement_service import RequirementService
 from app.infrastructure.logger import Logging
@@ -66,14 +66,17 @@ async def process_requirement(
                 usage_type="LLM",
             )
         except Exception as log_ex:
-            logger.warning(
-                tracking_token=tracking_token,
+
+            logger.log(
                 message="Failed to log token usage",
+                event_type="TokenUsageLoggingFailed",
+                is_success=False,
                 payload={
                     "company_id": request.CompanyId,
                     "tender_id": request.TenderId,
                     "error": str(log_ex),
                 },
+                correlation_id=tracking_token["correlation_id"],
             )
 
         logger.end(
