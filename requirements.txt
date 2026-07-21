@@ -30,7 +30,7 @@ qdrant-client
 # Mongo
 pymongo
 
-sentence_transformer
+sentence-transformers
 
 fastapi
 uvicorn
