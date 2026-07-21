@@ -1,18 +1,22 @@
-import os
 import json
 import logging
-import httpx
+import os
 from typing import Any
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
 
 class TokenUsageService:
-
+    
+    # Model Pricing List change if price updated
     MODEL_PRICING = {
         "gpt-4o-mini": {"input": 0.15, "output": 0.60},
         "gpt-4o": {"input": 2.50, "output": 10.00},
         "text-embedding-3-small": {"input": 0.02, "output": 0.0},
+        "mistral-small-2506": {"input": 0.10, "output": 0.30},
+        "mistral-large-2411": {"input": 2.00, "output": 6.00},
     }
 
     @staticmethod
@@ -59,12 +63,9 @@ class TokenUsageService:
             "output_tokens": int(output_tokens),
             "total_tokens": int(total_tokens),
         }
-    
+
     @staticmethod
     def merge_usage(total_usage: dict, usage: dict):
-        """
-        Merge a single LLM usage into the accumulated token usage.
-        """
 
         total_usage["input_tokens"] += usage["input_tokens"]
         total_usage["output_tokens"] += usage["output_tokens"]
@@ -85,9 +86,6 @@ class TokenUsageService:
 
     @staticmethod
     def update_state(state: dict, response: Any):
-        """
-        Extract token usage from an LLM response and merge it into the workflow state.
-        """
 
         usage = TokenUsageService.extract_token_usage(response)
 
@@ -126,7 +124,8 @@ class TokenUsageService:
     async def log_usage(api_url: str, payload: dict, token: str):
 
         headers = {
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
         }
 
         async with httpx.AsyncClient(timeout=30) as client:
@@ -140,7 +139,7 @@ class TokenUsageService:
             response.raise_for_status()
 
             return response.json()
-        
+
     @staticmethod
     async def log_agent_usage(
         request,
@@ -155,9 +154,23 @@ class TokenUsageService:
         usage_type: str,
     ):
 
+        total_cost = sum(
+            TokenUsageService.calculate_cost(
+                model=model,
+                input_tokens=model_usage["input_tokens"],
+                output_tokens=model_usage["output_tokens"],
+            )
+            for model, model_usage in token_usage.get("models", {}).items()
+        )
+
         payload = {
             "applicationName": application_name,
-            "sourceIds": source_ids,
+            "sourceIds": [
+                {
+                    "sourceIdType": "TenderId",
+                    "id": request.TenderId,
+                }
+            ],
             "runId": correlation_id,
             "userId": request.UserId,
             "purpose": purpose,
@@ -169,20 +182,21 @@ class TokenUsageService:
             "totalTokens": token_usage.get("total_tokens", 0),
             "model": ",".join(token_usage.get("models", {}).keys()),
             "duration": duration_ms,
-            "cost": sum(
-                TokenUsageService.calculate_cost(
-                    model=model,
-                    input_tokens=model_usage["input_tokens"],
-                    output_tokens=model_usage["output_tokens"],
-                )
-                for model, model_usage in token_usage.get("models", {}).items()
-            ),
+            "cost": {
+                "currency": "USD",
+                "value": total_cost,
+            },
             "companyId": request.CompanyId,
             "tenderId": request.TenderId,
             "projectId": request.ProjectId,
         }
 
-        api_url = os.getenv("AI_USAGE_API_URL")
+        api_url = os.getenv("AI_USAGE_LOG_API")
+
+        if not api_url:
+            raise ValueError(
+                "AI_USAGE_LOG_API is not configured in the .env file."
+            )
 
         return await TokenUsageService.log_usage(
             api_url=api_url,
