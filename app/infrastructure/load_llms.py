@@ -10,7 +10,6 @@ from app.infrastructure.token_usage_logger import AIUsageLogger
 
 
 load_dotenv()
-xs
 # =====================================================
 # Get Secrets Key
 # ======================================================
