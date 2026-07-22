@@ -69,11 +69,9 @@ Return ONLY valid JSON.
 # Chain
 # ==========================================================
 
-DETECTOR_CHAIN = (
-    DETECTOR_PROMPT
-    | llm
-    | JsonOutputParser()
-)
+LLM_CHAIN = DETECTOR_PROMPT | llm
+
+PARSER = JsonOutputParser()
 
 # ==========================================================
 # Wrapper
@@ -81,9 +79,8 @@ DETECTOR_CHAIN = (
 
 async def detect_and_extract(
     chunk_text: str,
-) -> dict:
-
-    return await DETECTOR_CHAIN.ainvoke(
+):
+    raw_response = await LLM_CHAIN.ainvoke(
         {
             "system_prompt": DETECTOR_SYSTEM_PROMPT,
             "constitution": DETECTOR_CONSTITUTION,
@@ -91,3 +88,7 @@ async def detect_and_extract(
             "chunk_text": chunk_text,
         }
     )
+
+    parsed_response = PARSER.invoke(raw_response)
+
+    return raw_response, parsed_response

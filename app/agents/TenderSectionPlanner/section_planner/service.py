@@ -604,14 +604,13 @@ class SectionPlannerService:
             raise SourceNotFoundError(
                 f"{operational_status} Requirement Deduplication output was not found"
             )
-        if not evaluation:
-            raise SourceNotFoundError(
-                f"{operational_status} Evaluation Criteria output was not found"
-            )
-        for label, record in (
-            ("Requirement Deduplication output", requirements),
-            ("Evaluation Criteria output", evaluation),
-        ):
+        # Evaluation Criteria is optional: a null/NOT_FOUND result is a legitimate
+        # extraction outcome (no evaluation model in the tender), not a blocker.
+        # The plan is still built from requirements alone in that case.
+        sources = [("Requirement Deduplication output", requirements)]
+        if evaluation:
+            sources.append(("Evaluation Criteria output", evaluation))
+        for label, record in sources:
             self._validate_source_scope(label, record, company_id, tender_id)
         state["requirement_record"] = requirements
         state["evaluation_record"] = evaluation
@@ -870,7 +869,9 @@ class SectionPlannerService:
         )
 
     @staticmethod
-    def _record_id(record: dict[str, Any]) -> str | None:
+    def _record_id(record: dict[str, Any] | None) -> str | None:
+        if not record:
+            return None
         raw = record.get("_id") or record.get("Id")
         return str(raw) if raw is not None else None
 
@@ -895,6 +896,8 @@ class SectionPlannerService:
     def normalize_evaluation_criteria(state: SectionPlannerState) -> dict[str, Any]:
         output = _payload(state["evaluation_record"])
         criteria = output.get("Criteria")
+        if criteria is None:
+            criteria = []
         if not isinstance(criteria, list):
             raise InvalidSourceError("Evaluation Criteria.Criteria must be an array")
         normalized_criteria = []

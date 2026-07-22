@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Any, Protocol
 
@@ -89,11 +90,15 @@ class MongoPlannerRepository:
             return self._latest(collection, query)
         return max(documents, key=self._source_recency_key) if documents else None
 
+    @staticmethod
+    def _exact_status(operational_status: str) -> dict[str, Any]:
+        return {"$regex": f"^{re.escape(operational_status)}$", "$options": "i"}
+
     def load_requirements(
         self, company_id: str, tender_id: str, operational_status: str = "Active"
     ) -> dict[str, Any] | None:
         query = self._scope(company_id, tender_id)
-        valid_status = {"$regex": "^(active|regenerating)$", "$options": "i"}
+        valid_status = self._exact_status(operational_status)
         query["$or"] = [
             {"Status": valid_status},
             {"Output.Status": valid_status},
@@ -105,26 +110,17 @@ class MongoPlannerRepository:
     def load_evaluation(
         self, company_id: str, tender_id: str, operational_status: str = "Active"
     ) -> dict[str, Any] | None:
+        # ExtractionStatus is not filtered here: NOT_FOUND is a valid, evidence-grounded
+        # extraction outcome (no evaluation model in the tender), not a defect. The
+        # planner treats criteria as optional and must still build a plan from
+        # requirements alone when no evaluation model was detected.
         query = self._scope(company_id, tender_id)
-        valid_status = {"$regex": "^(active|regenerating)$", "$options": "i"}
-        completed = {"$regex": "^completed$", "$options": "i"}
-        query["$and"] = [
-            {
-                "$or": [
-                    {"Status": valid_status},
-                    {"Output.Status": valid_status},
-                    {"JsonOutput.Status": valid_status},
-                    {"FinalJson.Status": valid_status},
-                ]
-            },
-            {
-                "$or": [
-                    {"ExtractionStatus": completed},
-                    {"Output.ExtractionStatus": completed},
-                    {"JsonOutput.ExtractionStatus": completed},
-                    {"FinalJson.ExtractionStatus": completed},
-                ]
-            },
+        valid_status = self._exact_status(operational_status)
+        query["$or"] = [
+            {"Status": valid_status},
+            {"Output.Status": valid_status},
+            {"JsonOutput.Status": valid_status},
+            {"FinalJson.Status": valid_status},
         ]
         return self._newest_eligible(self.evaluation_collection, query)
 

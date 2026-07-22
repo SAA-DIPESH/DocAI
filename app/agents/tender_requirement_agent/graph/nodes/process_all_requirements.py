@@ -7,8 +7,22 @@ from app.agents.tender_requirement_agent.chains.intent_chain import understand_i
 from app.agents.tender_requirement_agent.graph.agent_state import TenderRequirementState
 from app.agents.tender_requirement_agent.services.requirement_repository_mongo import requirement_repository
 from app.agents.tender_requirement_agent.utils.helper import update_latency
+from app.infrastructure.token_usage_logger import TokenUsageService
 
-async def _process_requirement(requirement: Dict[str, Any],state: TenderRequirementState,index: int) -> Dict[str, Any]:
+
+DEFAULT_TOKEN_USAGE = {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "models": {},
+}
+
+
+async def _process_requirement(
+    requirement: Dict[str, Any],
+    state: TenderRequirementState,
+    index: int,
+) -> Dict[str, Any]:
     """
     Process a single requirement by:
     1. Generating RequirementId
@@ -24,14 +38,20 @@ async def _process_requirement(requirement: Dict[str, Any],state: TenderRequirem
         f"REQ-{index + 1:03d}"
     )
 
-    result["IntentResult"] = await understand_intent(
+    # LLM Call
+    raw_response, intent_result = await understand_intent(
         heading=state.get("heading"),
         requirement=result["RequirementText"],
         requirement_type=result["RequirementType"],
         requirement_strength=result["RequirementStrength"],
     )
 
-    return {
+    # Extract token usage
+    usage = TokenUsageService.extract_token_usage(raw_response)
+
+    result["IntentResult"] = intent_result
+
+    document = {
         # Metadata
         "CompanyId": state["company_id"],
         "DocumentId": state["document_id"],
@@ -62,9 +82,23 @@ async def _process_requirement(requirement: Dict[str, Any],state: TenderRequirem
         "Status": state["status"],
     }
 
-async def process_requirements_node(state: TenderRequirementState) -> Dict[str, Any]:
+    return {
+        "document": document,
+        "usage": usage,
+    }
+
+
+async def process_requirements_node(
+    state: TenderRequirementState,
+) -> Dict[str, Any]:
 
     start_time = time.perf_counter()
+
+    # Ensure token_usage always exists
+    token_usage = state.setdefault(
+        "token_usage",
+        DEFAULT_TOKEN_USAGE.copy(),
+    )
 
     try:
 
@@ -73,7 +107,9 @@ async def process_requirements_node(state: TenderRequirementState) -> Dict[str, 
         if not requirements:
             return {
                 "requirements": [],
-                "status": "completed",
+                "processed_requirements": 0,
+                "token_usage": token_usage,
+                "workflow_status": "completed",
                 "current_step": "process_requirements",
                 "error": None,
                 "node_latencies": update_latency(
@@ -83,8 +119,8 @@ async def process_requirements_node(state: TenderRequirementState) -> Dict[str, 
                 ),
             }
 
-        # Process all requirements in parallel
-        mongo_documents = await asyncio.gather(
+        # Process all requirements concurrently
+        results = await asyncio.gather(
             *[
                 _process_requirement(
                     requirement=requirement,
@@ -95,13 +131,26 @@ async def process_requirements_node(state: TenderRequirementState) -> Dict[str, 
             ]
         )
 
-        # Bulk save to MongoDB
+        # Merge token usage
+        for result in results:
+            TokenUsageService.merge_usage(
+                token_usage,
+                result["usage"],
+            )
+
+        # Extract Mongo documents
+        mongo_documents = [
+            result["document"]
+            for result in results
+        ]
+
+        # Bulk save
         await asyncio.to_thread(
             requirement_repository.bulk_upsert_requirements,
             mongo_documents,
         )
 
-        # Remove Mongo-only fields from response
+        # Remove internal fields
         response_requirements = [
             {
                 key: value
@@ -119,6 +168,7 @@ async def process_requirements_node(state: TenderRequirementState) -> Dict[str, 
         return {
             "requirements": response_requirements,
             "processed_requirements": len(response_requirements),
+            "token_usage": token_usage,
             "workflow_status": "completed",
             "current_step": "process_requirements",
             "error": None,
@@ -134,6 +184,7 @@ async def process_requirements_node(state: TenderRequirementState) -> Dict[str, 
         return {
             "requirements": [],
             "processed_requirements": 0,
+            "token_usage": token_usage,
             "workflow_status": "failed",
             "current_step": "process_requirements",
             "error": str(ex),
