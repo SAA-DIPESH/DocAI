@@ -331,8 +331,16 @@ async def generate_proposal(
         ).removeprefix("Bearer ").strip()
 
         if total_tokens > 0:
+            token_usage_payload = {
+                "sections_generated": len(result.get("section_results", [])),
+                "total_tokens": total_tokens,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "model": model,
+            }
+
             try:
-                await token_usage_service.log_agent_usage(
+                token_usage_response = await token_usage_service.log_agent_usage(
                     request=request,
                     token_usage={
                         "input_tokens": input_tokens,
@@ -348,23 +356,57 @@ async def generate_proposal(
                     purpose="Proposal Generation",
                 )
 
+                usage_saved = token_usage_response is not None
+                if isinstance(token_usage_response, dict):
+                    usage_saved = token_usage_response.get("success", True) is not False
+
+                token_usage_payload["token_usage_response"] = token_usage_response
+
                 logger.log(
-                    message="Token usage logged",
-                    event_type="OUTPUT_SAVED",
-                    is_success=True,
+                    message=(
+                        "Token usage logged"
+                        if usage_saved
+                        else "Token usage logging failed or skipped"
+                    ),
+                    event_type=(
+                        "OUTPUT_SAVED"
+                        if usage_saved
+                        else "TOKEN_USAGE_LOG_FAILED"
+                    ),
+                    is_success=usage_saved,
                     duration_ms=duration_ms,
                     correlation_id=correlation_id,
-                    payload={
-                        "sections_generated": len(result.get("section_results", [])),
-                        "total_tokens": total_tokens,
-                        "input_tokens": input_tokens,
-                        "output_tokens": output_tokens,
-                        "model": model,
-                    },
+                    payload=token_usage_payload,
                 )
 
             except Exception as ex:
-                print(f"Token usage logging failed : {ex}")
+                logger.log(
+                    message=f"Token usage logging failed: {str(ex)}",
+                    event_type="TOKEN_USAGE_LOG_FAILED",
+                    is_success=False,
+                    duration_ms=duration_ms,
+                    correlation_id=correlation_id,
+                    payload=token_usage_payload,
+                )
+        else:
+            logger.log(
+                message="Token usage logging skipped: no token usage found",
+                event_type="TOKEN_USAGE_LOG_SKIPPED",
+                is_success=False,
+                duration_ms=duration_ms,
+                correlation_id=correlation_id,
+                payload={
+                    "sections_generated": (
+                        len(result.get("section_results", []))
+                        if isinstance(result, dict)
+                        else 0
+                    ),
+                    "total_tokens": total_tokens,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "model": model,
+                },
+            )
 ####################################################
 @router.post("/generate/stream")
 async def generate_proposal_stream(

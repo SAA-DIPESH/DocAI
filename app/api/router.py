@@ -10,7 +10,8 @@ from app.agents.GrammerAI.app.api.router.routes import router as grammar_router
 from app.agents.TenderSectionPlanner.section_planner.api import (
     router as tender_section_planner_router,
 )
-
+from app.agents.Add_section_agent.app.api.router.router import router as add_section_router
+from app.agents.company_sumarry_gen.app.api.routes.router import router as company_summary_router
 api_router = APIRouter()
 
  
@@ -37,3 +38,9 @@ api_router.include_router(wintheam_generator_router)
 
 # Tender Section Planner Routes
 api_router.include_router(tender_section_planner_router, prefix="/api/v1/agents")
+
+# # Add praposal section agent
+# api_router.include_router(add_section_router)
+
+# # Company Summary Generator Routes
+# api_router.include_router(company_summary_router)
