@@ -10,7 +10,7 @@ load_dotenv()
 class ProposalSummaryRepository:
     def __init__(self):
         mongo_uri = os.getenv("MONGO_URI")
-        database_name = os.getenv("MONGODB_DATABASE") or os.getenv("MONGO_DB_NAME")
+        database_name = os.getenv("MONGODB_DATABASE")
         collection_name = os.getenv("TENDER_PROPOSAL_SUMMARY_COLLECTION")
 
         if not mongo_uri:
