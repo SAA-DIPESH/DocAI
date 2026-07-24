@@ -1,491 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Tender Compliance Console</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tender Compliance Console</title>
+  <style>
+    /* ----- global reset & variables (same dark theme) ----- */
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
-:root{
-  --bg:#0e1013;
-  --bg-panel:#15181d;
-  --bg-card:#1a1e24;
-  --bg-raised:#20252c;
-  --line:#2a2f37;
-  --line-soft:#22262d;
-  --text:#e8e9ea;
-  --text-dim:#8b929e;
-  --text-faint:#575d67;
-  --accent:#5ec8b8;
-  --accent-dim:#3a7d73;
-  --pass:#5ec88a;
-  --pass-bg:#16241d;
-  --fail:#e6685f;
-  --fail-bg:#271a19;
-  --warn:#e0b256;
-  --warn-bg:#26200f;
-  --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --sans:'IBM Plex Sans', -apple-system, sans-serif;
-}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-*{box-sizing:border-box; margin:0; padding:0;}
+    :root {
+      --bg: #0e1013;
+      --bg-panel: #15181d;
+      --bg-card: #1a1e24;
+      --bg-raised: #20252c;
+      --line: #2a2f37;
+      --line-soft: #22262d;
+      --text: #e8e9ea;
+      --text-dim: #8b929e;
+      --text-faint: #575d67;
+      --accent: #5ec8b8;
+      --accent-dim: #3a7d73;
+      --pass: #5ec88a;
+      --pass-bg: #16241d;
+      --fail: #e6685f;
+      --fail-bg: #271a19;
+      --warn: #e0b256;
+      --warn-bg: #26200f;
+      --blocked: #d97a9b;
+      --blocked-bg: #2a1b24;
+      --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    }
 
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:var(--sans);
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
-}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
 
-/* ---------- INPUT SCREEN ---------- */
-#inputScreen{
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:48px 24px;
-}
-.input-wrap{
-  width:100%;
-  max-width:840px;
-}
-.brand{
-  display:flex;
-  align-items:baseline;
-  gap:10px;
-  margin-bottom:6px;
-}
-.brand-mark{
-  width:10px; height:10px;
-  background:var(--accent);
-  border-radius:2px;
-  flex-shrink:0;
-  margin-bottom:2px;
-}
-.brand h1{
-  font-family:var(--mono);
-  font-size:19px;
-  font-weight:600;
-  letter-spacing:-0.01em;
-}
-.brand-sub{
-  color:var(--text-dim);
-  font-size:13.5px;
-  margin-bottom:32px;
-  max-width:520px;
-  line-height:1.55;
-}
-textarea{
-  width:100%;
-  min-height:280px;
-  background:var(--bg-panel);
-  border:1px solid var(--line);
-  border-radius:6px;
-  color:var(--text);
-  font-family:var(--mono);
-  font-size:12.5px;
-  line-height:1.6;
-  padding:16px;
-  resize:vertical;
-  outline:none;
-  transition:border-color .15s;
-}
-textarea:focus{ border-color:var(--accent-dim); }
-textarea::placeholder{ color:var(--text-faint); }
+    /* ----- input screen ----- */
+    #inputScreen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px;
+    }
+    .input-wrap { width: 100%; max-width: 840px; }
+    .brand { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+    .brand-mark { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; flex-shrink: 0; margin-bottom: 2px; }
+    .brand h1 { font-family: var(--mono); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+    .brand-sub { color: var(--text-dim); font-size: 13.5px; margin-bottom: 32px; max-width: 560px; line-height: 1.55; }
+    textarea {
+      width: 100%; min-height: 280px;
+      background: var(--bg-panel); border: 1px solid var(--line); border-radius: 6px;
+      color: var(--text); font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+      padding: 16px; resize: vertical; outline: none; transition: border-color .15s;
+    }
+    textarea:focus { border-color: var(--accent-dim); }
+    textarea::placeholder { color: var(--text-faint); }
+    .input-row { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; flex-wrap: wrap; }
+    #errMsg { color: var(--fail); font-family: var(--mono); font-size: 12px; flex: 1; }
+    .btn { font-family: var(--sans); font-size: 13.5px; font-weight: 600; padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; transition: transform .1s, background .15s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #0e1013; }
+    .btn-primary:hover { background: #72d3c4; }
+    .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--text-dim); }
+    .btn-ghost:hover { border-color: var(--text-faint); color: var(--text); }
+    .sample-note { margin-top: 18px; font-size: 12px; color: var(--text-faint); font-family: var(--mono); line-height: 1.6; }
 
-.input-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-top:14px;
-  gap:12px;
-  flex-wrap:wrap;
-}
-#errMsg{
-  color:var(--fail);
-  font-family:var(--mono);
-  font-size:12px;
-  flex:1;
-}
-.btn{
-  font-family:var(--sans);
-  font-size:13.5px;
-  font-weight:600;
-  padding:10px 20px;
-  border-radius:5px;
-  border:none;
-  cursor:pointer;
-  transition:transform .1s, background .15s;
-}
-.btn:active{ transform:scale(0.97); }
-.btn-primary{
-  background:var(--accent);
-  color:#0e1013;
-}
-.btn-primary:hover{ background:#72d3c4; }
-.btn-ghost{
-  background:transparent;
-  border:1px solid var(--line);
-  color:var(--text-dim);
-}
-.btn-ghost:hover{ border-color:var(--text-faint); color:var(--text); }
+    /* ----- dashboard ----- */
+    #dashboard { display: none; }
 
-.sample-note{
-  margin-top:18px;
-  font-size:12px;
-  color:var(--text-faint);
-  font-family:var(--mono);
-}
+    .topbar {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(14,16,19,0.92); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line); padding: 14px 28px;
+      display: flex; align-items: center; gap: 18px;
+      flex-wrap: wrap;
+    }
+    .topbar .brand h1 { font-size: 15px; }
+    .topbar .brand-mark { width: 8px; height: 8px; }
+    .topbar-meta { font-family: var(--mono); font-size: 11.5px; color: var(--text-faint); display: flex; gap: 16px; flex-wrap: wrap; }
+    .topbar-meta b { color: var(--text-dim); font-weight: 500; }
+    .topbar-spacer { flex: 1; }
+    .reload-btn {
+      font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
+      background: var(--bg-panel); border: 1px solid var(--line); padding: 7px 14px;
+      border-radius: 5px; cursor: pointer;
+    }
+    .reload-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
 
-/* ---------- DASHBOARD ---------- */
-#dashboard{ display:none; }
+    .summary-strip { display: flex; gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); overflow-x: auto; }
+    .stat { flex: 1; min-width: 120px; background: var(--bg-panel); padding: 16px 22px; }
+    .stat-num { font-family: var(--mono); font-size: 24px; font-weight: 600; line-height: 1; }
+    .stat-label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .06em; margin-top: 6px; }
+    .stat.pass .stat-num { color: var(--pass); }
+    .stat.fail .stat-num { color: var(--fail); }
+    .stat.warn .stat-num { color: var(--warn); }
 
-.topbar{
-  position:sticky; top:0; z-index:30;
-  background:rgba(14,16,19,0.92);
-  backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--line);
-  padding:14px 28px;
-  display:flex;
-  align-items:center;
-  gap:18px;
-}
-.topbar .brand h1{ font-size:15px; }
-.topbar .brand-mark{ width:8px; height:8px; }
-.topbar-meta{
-  font-family:var(--mono);
-  font-size:11.5px;
-  color:var(--text-faint);
-  display:flex;
-  gap:16px;
-  flex-wrap:wrap;
-}
-.topbar-meta b{ color:var(--text-dim); font-weight:500; }
-.topbar-spacer{ flex:1; }
-.reload-btn{
-  font-family:var(--mono);
-  font-size:11.5px;
-  color:var(--text-dim);
-  background:var(--bg-panel);
-  border:1px solid var(--line);
-  padding:7px 14px;
-  border-radius:5px;
-  cursor:pointer;
-}
-.reload-btn:hover{ border-color:var(--accent-dim); color:var(--accent); }
+    .controls { padding: 16px 28px 4px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .filter-btn {
+      font-family: var(--mono); font-size: 11.5px; padding: 6px 13px; border-radius: 20px;
+      border: 1px solid var(--line); background: transparent; color: var(--text-dim); cursor: pointer; transition: all .12s;
+    }
+    .filter-btn:hover { border-color: var(--text-dim); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #0e1013; font-weight: 600; }
+    .search-box {
+      margin-left: auto; font-family: var(--mono); font-size: 12px;
+      background: var(--bg-panel); border: 1px solid var(--line); border-radius: 20px;
+      padding: 6px 14px; color: var(--text); outline: none; min-width: 220px;
+    }
+    .search-box:focus { border-color: var(--accent-dim); }
 
-.summary-strip{
-  display:flex;
-  gap:1px;
-  background:var(--line);
-  border-bottom:1px solid var(--line);
-  overflow-x:auto;
-}
-.stat{
-  flex:1;
-  min-width:120px;
-  background:var(--bg-panel);
-  padding:16px 22px;
-}
-.stat-num{
-  font-family:var(--mono);
-  font-size:24px;
-  font-weight:600;
-  line-height:1;
-}
-.stat-label{
-  font-size:11px;
-  color:var(--text-faint);
-  text-transform:uppercase;
-  letter-spacing:.06em;
-  margin-top:6px;
-}
-.stat.pass .stat-num{ color:var(--pass); }
-.stat.fail .stat-num{ color:var(--fail); }
-.stat.warn .stat-num{ color:var(--warn); }
+    .grid { padding: 20px 28px 60px; display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
 
-.controls{
-  padding:16px 28px 4px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:center;
-}
-.filter-btn{
-  font-family:var(--mono);
-  font-size:11.5px;
-  padding:6px 13px;
-  border-radius:20px;
-  border:1px solid var(--line);
-  background:transparent;
-  color:var(--text-dim);
-  cursor:pointer;
-  transition:all .12s;
-}
-.filter-btn:hover{ border-color:var(--text-dim); }
-.filter-btn.active{
-  background:var(--accent);
-  border-color:var(--accent);
-  color:#0e1013;
-  font-weight:600;
-}
-.search-box{
-  margin-left:auto;
-  font-family:var(--mono);
-  font-size:12px;
-  background:var(--bg-panel);
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:6px 14px;
-  color:var(--text);
-  outline:none;
-  min-width:200px;
-}
-.search-box:focus{ border-color:var(--accent-dim); }
+    /* ----- cards (updated for new fields) ----- */
+    .card { background: var(--bg-card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+    .card-head { padding: 16px 18px 14px; border-bottom: 1px solid var(--line-soft); }
+    .card-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .group-tag { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .coverage-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .coverage-Complete { background: var(--pass); }
+    .coverage-Partial { background: var(--warn); }
+    .coverage-InsufficientEvidence { background: var(--fail); }
+    .coverage-Unknown { background: var(--text-faint); }
+    .card-title { font-size: 15px; font-weight: 600; line-height: 1.3; }
+    .status-pill { flex-shrink: 0; font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .03em; padding: 4px 9px; border-radius: 20px; white-space: nowrap; }
+    .status-pill.Ready { background: var(--pass-bg); color: var(--pass); }
+    .status-pill.ReviewRequired { background: var(--warn-bg); color: var(--warn); }
+    .status-pill.Blocked { background: var(--blocked-bg); color: var(--blocked); }
+    .status-pill.NODATA { background: var(--bg-raised); color: var(--text-faint); }
 
-.grid{
-  padding:20px 28px 60px;
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(380px, 1fr));
-  gap:16px;
-}
+    .card-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; margin-top: 8px; }
+    .card-desc.empty { color: var(--text-faint); font-style: italic; }
 
-.card{
-  background:var(--bg-card);
-  border:1px solid var(--line);
-  border-radius:8px;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-}
-.card-head{
-  padding:16px 18px 14px;
-  border-bottom:1px solid var(--line-soft);
-}
-.card-top-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:10px;
-}
-.group-tag{
-  font-family:var(--mono);
-  font-size:10px;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-  color:var(--text-faint);
-  margin-bottom:6px;
-}
-.card-title{
-  font-size:15px;
-  font-weight:600;
-  line-height:1.3;
-}
-.status-pill{
-  flex-shrink:0;
-  font-family:var(--mono);
-  font-size:10.5px;
-  font-weight:700;
-  letter-spacing:.03em;
-  padding:4px 9px;
-  border-radius:20px;
-  white-space:nowrap;
-}
-.status-pill.PASS{ background:var(--pass-bg); color:var(--pass); }
-.status-pill.FAIL{ background:var(--fail-bg); color:var(--fail); }
-.status-pill.NODATA{ background:var(--bg-raised); color:var(--text-faint); }
+    .meta-row { display: flex; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
+    .meta-item { font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); display: flex; align-items: center; gap: 5px; }
+    .meta-item.gap { color: var(--fail); }
+    .priority-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--fail); }
 
-.card-desc{
-  font-size:12.5px;
-  color:var(--text-dim);
-  line-height:1.55;
-  margin-top:8px;
-}
+    .card-body { padding: 14px 18px 18px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
-.meta-row{
-  display:flex;
-  gap:14px;
-  margin-top:12px;
-  flex-wrap:wrap;
-}
-.meta-item{
-  font-family:var(--mono);
-  font-size:10.5px;
-  color:var(--text-faint);
-  display:flex;
-  align-items:center;
-  gap:5px;
-}
-.priority-dot{
-  width:6px; height:6px; border-radius:50%;
-}
-.priority-High{ background:var(--fail); }
-.priority-Medium{ background:var(--warn); }
-.priority-Low{ background:var(--text-faint); }
+    .block-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint); margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+    .block-label .count { background: var(--bg-raised); color: var(--text-dim); padding: 1px 6px; border-radius: 9px; font-size: 9.5px; }
 
-.score-bar-wrap{
-  margin-top:12px;
-}
-.score-bar-track{
-  height:5px;
-  background:var(--bg-raised);
-  border-radius:3px;
-  overflow:hidden;
-}
-.score-bar-fill{
-  height:100%;
-  border-radius:3px;
-}
-.score-label{
-  font-family:var(--mono);
-  font-size:10.5px;
-  color:var(--text-faint);
-  margin-top:5px;
-  display:flex;
-  justify-content:space-between;
-}
+    ul.item-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    ul.item-list li { font-size: 12px; line-height: 1.5; padding: 8px 10px; border-radius: 5px; border-left: 2px solid transparent; }
+    .li-missing { background: var(--fail-bg); border-left-color: var(--fail); color: #f0b8b3; }
+    .li-suggestion { background: var(--bg-raised); border-left-color: var(--accent-dim); color: var(--text-dim); }
 
-.card-body{
-  padding:14px 18px 18px;
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
+    .req-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .req-chip { font-family: var(--mono); font-size: 10.5px; padding: 3px 8px; border-radius: 4px; background: var(--bg-raised); color: var(--text-dim); border: 1px solid var(--line-soft); }
 
-.block-label{
-  font-family:var(--mono);
-  font-size:10px;
-  text-transform:uppercase;
-  letter-spacing:.07em;
-  color:var(--text-faint);
-  margin-bottom:7px;
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-.block-label .count{
-  background:var(--bg-raised);
-  color:var(--text-dim);
-  padding:1px 6px;
-  border-radius:9px;
-  font-size:9.5px;
-}
+    .gap-grid { display: flex; flex-direction: column; gap: 8px; }
+    .gap-item { background: var(--bg-raised); border-radius: 6px; padding: 10px 12px; border-left: 2px solid var(--fail); }
+    .gap-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+    .gap-req-id { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text); }
+    .gap-type { font-family: var(--mono); font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); white-space: nowrap; }
+    .gap-text { font-size: 11.5px; color: var(--text-dim); line-height: 1.5; }
+    .gap-missing-list { margin-top: 6px; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+    .gap-missing-list li { font-size: 11px; color: var(--text-faint); line-height: 1.5; padding-left: 12px; position: relative; }
+    .gap-missing-list li::before { content: '–'; position: absolute; left: 0; color: var(--fail); }
+    .gap-reason { font-size: 11px; color: var(--text-faint); margin-top: 6px; font-style: italic; }
 
-ul.item-list{ list-style:none; display:flex; flex-direction:column; gap:6px; }
-ul.item-list li{
-  font-size:12px;
-  line-height:1.5;
-  padding:8px 10px;
-  border-radius:5px;
-  border-left:2px solid transparent;
-}
-.li-missing{ background:var(--fail-bg); border-left-color:var(--fail); color:#f0b8b3; }
-.li-unsupported{ background:var(--warn-bg); border-left-color:var(--warn); color:#eccf98; }
-.li-suggestion{ background:var(--bg-raised); border-left-color:var(--accent-dim); color:var(--text-dim); }
+    .subsec-row { display: flex; flex-direction: column; gap: 8px; }
+    .subsec-item { padding: 9px 11px; background: var(--bg-raised); border-radius: 6px; font-size: 11.5px; }
+    .subsec-name { font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .subsec-desc { color: var(--text-faint); line-height: 1.5; }
+    .subsec-desc.empty { font-style: italic; }
+    .subsec-children { margin-top: 8px; margin-left: 12px; padding-left: 10px; border-left: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 8px; }
 
-.req-chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
-.req-chip{
-  font-family:var(--mono);
-  font-size:10.5px;
-  padding:3px 8px;
-  border-radius:4px;
-  background:var(--bg-raised);
-  color:var(--text-dim);
-  border:1px solid var(--line-soft);
-}
+    .card-footer { padding: 10px 18px; border-top: 1px solid var(--line-soft); font-family: var(--mono); font-size: 10px; color: var(--text-faint); display: flex; justify-content: space-between; }
 
-.evidence-grid{ display:flex; flex-direction:column; gap:8px; }
-.ev-item{
-  background:var(--bg-raised);
-  border-radius:6px;
-  padding:10px 12px;
-  border-left:2px solid var(--line);
-}
-.ev-item.found{ border-left-color:var(--pass); }
-.ev-item.missing{ border-left-color:var(--fail); }
-.ev-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:8px;
-  margin-bottom:5px;
-}
-.ev-req-id{
-  font-family:var(--mono);
-  font-size:11px;
-  font-weight:600;
-  color:var(--text);
-}
-.ev-conf{
-  font-family:var(--mono);
-  font-size:10px;
-  color:var(--text-faint);
-}
-.ev-text{
-  font-size:11.5px;
-  color:var(--text-dim);
-  line-height:1.5;
-}
-.ev-reason{
-  font-size:11px;
-  color:var(--text-faint);
-  margin-top:5px;
-  font-style:italic;
-}
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 80px 20px; color: var(--text-faint); font-family: var(--mono); font-size: 13px; }
 
-.subsec-row{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.subsec-item{
-  padding:9px 11px;
-  background:var(--bg-raised);
-  border-radius:6px;
-  font-size:11.5px;
-}
-.subsec-name{ font-weight:600; color:var(--text); margin-bottom:3px; }
-.subsec-desc{ color:var(--text-faint); line-height:1.5; }
-.subsec-flags{ display:flex; gap:6px; margin-top:6px; }
-.flag{
-  font-family:var(--mono);
-  font-size:9.5px;
-  padding:2px 6px;
-  border-radius:3px;
-  background:var(--bg-panel);
-  color:var(--text-faint);
-}
-.flag.on{ color:var(--accent); }
+    .quality-checks { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 4px; }
+    .qc-item { font-family: var(--mono); font-size: 10px; color: var(--text-dim); display: flex; align-items: center; gap: 4px; }
+    .qc-item .pass { color: var(--pass); }
+    .qc-item .fail { color: var(--fail); }
 
-.card-footer{
-  padding:10px 18px;
-  border-top:1px solid var(--line-soft);
-  font-family:var(--mono);
-  font-size:10px;
-  color:var(--text-faint);
-  display:flex;
-  justify-content:space-between;
-}
-
-.empty-state{
-  grid-column:1/-1;
-  text-align:center;
-  padding:80px 20px;
-  color:var(--text-faint);
-  font-family:var(--mono);
-  font-size:13px;
-}
-
-@media (max-width: 640px){
-  .grid{ grid-template-columns:1fr; padding:16px; }
-  .topbar{ padding:12px 16px; flex-wrap:wrap; }
-  .controls{ padding:14px 16px 0; }
-  .search-box{ margin-left:0; width:100%; }
-}
-</style>
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; padding: 16px; }
+      .topbar { padding: 12px 16px; flex-wrap: wrap; }
+      .controls { padding: 14px 16px 0; }
+      .search-box { margin-left: 0; width: 100%; }
+    }
+  </style>
 </head>
 <body>
 
@@ -493,8 +198,8 @@ ul.item-list li{
 <div id="inputScreen">
   <div class="input-wrap">
     <div class="brand"><span class="brand-mark"></span><h1>TENDER COMPLIANCE CONSOLE</h1></div>
-    <p class="brand-sub">Paste a proposal-generation JSON payload below. Each tender section renders as a card showing compliance status, missing requirements, unsupported claims, and evidence coverage.</p>
-    <textarea id="jsonInput" placeholder='Paste your JSON here, e.g. { "status": "success", "data": { "generation_context": { "Sections": [...] }, "section_results": [...] } }'></textarea>
+    <p class="brand-sub">Paste the full proposal JSON (with "sections" array). Each section renders with coverage, evidence gaps, traceability, and quality checks.</p>
+    <textarea id="jsonInput" placeholder='Paste your JSON here, e.g. [ { "SectionId": "...", "SectionName": "...", "GeneratedContent": "...", "GeneratedSubSections": [...], "InternalReview": { "CoverageStatus": "Complete", "PublicationStatus": "Ready", "EvidenceGap": false, "MissingEvidence": [], "Traceability": [...] } } ]'></textarea>
     <div class="input-row">
       <span id="errMsg"></span>
       <div style="display:flex; gap:10px;">
@@ -502,7 +207,7 @@ ul.item-list li{
         <button class="btn btn-primary" id="renderBtn">Render dashboard →</button>
       </div>
     </div>
-    <p class="sample-note">Accepts either the full API response, the inner "data" object, or a raw { generation_context, section_results } object.</p>
+    <p class="sample-note">Accepts either a raw array of sections, or a payload with a "sections" field. Handles both PascalCase and camelCase keys.</p>
   </div>
 </div>
 
@@ -519,9 +224,10 @@ ul.item-list li{
 
   <div class="controls">
     <button class="filter-btn active" data-filter="ALL">All sections</button>
-    <button class="filter-btn" data-filter="PASS">Pass</button>
-    <button class="filter-btn" data-filter="FAIL">Fail</button>
-    <button class="filter-btn" data-filter="NODATA">No data</button>
+    <button class="filter-btn" data-filter="Ready">Ready</button>
+    <button class="filter-btn" data-filter="ReviewRequired">Review required</button>
+    <button class="filter-btn" data-filter="Blocked">Blocked</button>
+    <button class="filter-btn" data-filter="GAP">Evidence gap</button>
     <input class="search-box" id="searchBox" placeholder="Search sections / requirement IDs…">
   </div>
 
@@ -529,261 +235,296 @@ ul.item-list li{
 </div>
 
 <script>
-let sections = [];
-let activeFilter = 'ALL';
-
-function $(sel){ return document.querySelector(sel); }
-function esc(str){
-  if(str===null||str===undefined) return '';
-  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-document.getElementById('renderBtn').addEventListener('click', tryRender);
-document.getElementById('clearBtn').addEventListener('click', () => {
-  document.getElementById('jsonInput').value = '';
-  document.getElementById('errMsg').textContent = '';
-});
-document.getElementById('newJsonBtn').addEventListener('click', () => {
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('inputScreen').style.display = 'flex';
-});
-
-function tryRender(){
-  const raw = document.getElementById('jsonInput').value.trim();
-  const errEl = document.getElementById('errMsg');
-  errEl.textContent = '';
-  if(!raw){ errEl.textContent = 'Paste some JSON first.'; return; }
-  let parsed;
-  try{
-    parsed = JSON.parse(raw);
-  }catch(e){
-    errEl.textContent = 'Invalid JSON: ' + e.message;
-    return;
+  // ----- helper: normalize keys (PascalCase or camelCase) -----
+  function normalizeSection(sec) {
+    // map both casing styles to a consistent internal shape
+    const get = (obj, key, alt) => obj[key] !== undefined ? obj[key] : obj[alt];
+    return {
+      sectionId: get(sec, 'sectionId', 'SectionId'),
+      sectionName: get(sec, 'sectionName', 'SectionName'),
+      generatedContent: get(sec, 'generatedContent', 'GeneratedContent') || '',
+      generatedSubSections: (get(sec, 'generatedSubSections', 'GeneratedSubSections') || []).map(s => normalizeSection(s)),
+      internalReview: get(sec, 'internalReview', 'InternalReview') || {}
+    };
   }
-  // Normalize: accept full response, .data, or raw object
-  let data = parsed;
-  if(data && data.data) data = data.data;
-  const genContext = data.generation_context || data.GenerationContext;
-  const sectionResults = data.section_results || data.SectionResults || [];
-  if(!genContext || !genContext.Sections){
-    errEl.textContent = 'Could not find generation_context.Sections in this JSON.';
-    return;
-  }
-  sections = buildSections(genContext.Sections, sectionResults);
-  document.getElementById('inputScreen').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'block';
-  renderMeta(data);
-  renderSummary();
-  renderGrid();
-}
 
-function buildSections(defSections, results){
-  const resultMap = {};
-  results.forEach(r => { resultMap[r.section_id] = r; });
-  return defSections.map(def => {
-    const res = resultMap[def.SectionId] || null;
-    const compliance = res && res.compliance_result ? res.compliance_result : null;
-    const validation = res && res.validation_result ? res.validation_result : null;
-    let status = 'NODATA';
-    if(compliance && compliance.status) status = compliance.status;
-    else if(validation && validation.errors && validation.errors.length) status = 'NODATA';
-    return { def, res, compliance, validation, status };
+  function normalizeReview(review) {
+    return {
+      CoverageStatus: review.CoverageStatus || review.coverageStatus || 'Unknown',
+      EvidenceGap: review.EvidenceGap !== undefined ? review.EvidenceGap : (review.evidenceGap || false),
+      PublicationStatus: review.PublicationStatus || review.publicationStatus || 'NODATA',
+      MissingEvidence: review.MissingEvidence || review.missingEvidence || [],
+      Traceability: review.Traceability || review.traceability || [],
+      QualityChecks: review.QualityChecks || review.qualityChecks || {}
+    };
+  }
+
+  let sections = [];
+  let activeFilter = 'ALL';
+
+  function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  document.getElementById('renderBtn').addEventListener('click', tryRender);
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    document.getElementById('jsonInput').value = '';
+    document.getElementById('errMsg').textContent = '';
   });
-}
+  document.getElementById('newJsonBtn').addEventListener('click', () => {
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('inputScreen').style.display = 'flex';
+  });
 
-function renderMeta(data){
-  const bits = [];
-  if(data.company_id) bits.push('company <b>'+esc(data.company_id.slice(0,8))+'…</b>');
-  if(data.tender_id) bits.push('tender <b>'+esc(data.tender_id.slice(0,8))+'…</b>');
-  if(data.user_id) bits.push('user <b>'+esc(data.user_id)+'</b>');
-  document.getElementById('topbarMeta').innerHTML = bits.join(' &nbsp;·&nbsp; ');
-}
+  function tryRender() {
+    const raw = document.getElementById('jsonInput').value.trim();
+    const errEl = document.getElementById('errMsg');
+    errEl.textContent = '';
+    if (!raw) { errEl.textContent = 'Paste some JSON first.'; return; }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { errEl.textContent = 'Invalid JSON: ' + e.message; return; }
 
-function renderSummary(){
-  const total = sections.length;
-  const pass = sections.filter(s => s.status === 'PASS').length;
-  const fail = sections.filter(s => s.status === 'FAIL').length;
-  const nodata = sections.filter(s => s.status === 'NODATA').length;
-  const scored = sections.filter(s => s.compliance && typeof s.compliance.score === 'number');
-  const avgScore = scored.length ? Math.round(scored.reduce((a,s)=>a+s.compliance.score,0)/scored.length) : null;
-  const missingReqs = sections.reduce((a,s)=> a + (s.compliance && s.compliance.missing_requirements ? s.compliance.missing_requirements.length : 0), 0);
+    // support: raw array, or object with "sections" / "Sections"
+    let sectionList = parsed;
+    if (!Array.isArray(parsed)) {
+      sectionList = parsed.sections || parsed.Sections;
+    }
+    if (!sectionList || !Array.isArray(sectionList)) {
+      errEl.textContent = 'Could not find a "sections" array in this JSON.';
+      return;
+    }
 
-  const stats = [
-    { label:'Sections', num: total, cls:'' },
-    { label:'Pass', num: pass, cls:'pass' },
-    { label:'Fail', num: fail, cls:'fail' },
-    { label:'No data', num: nodata, cls:'warn' },
-    { label:'Avg score', num: avgScore===null ? '—' : avgScore, cls:'' },
-    { label:'Missing reqs', num: missingReqs, cls: missingReqs ? 'fail' : '' },
-  ];
-  document.getElementById('summaryStrip').innerHTML = stats.map(s =>
-    `<div class="stat ${s.cls}"><div class="stat-num">${s.num}</div><div class="stat-label">${s.label}</div></div>`
-  ).join('');
-}
-
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeFilter = btn.dataset.filter;
+    sections = buildSections(sectionList);
+    document.getElementById('inputScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    renderMeta(parsed);
+    renderSummary();
     renderGrid();
-  });
-});
-document.getElementById('searchBox').addEventListener('input', renderGrid);
+  }
 
-function renderGrid(){
-  const q = document.getElementById('searchBox').value.trim().toLowerCase();
-  const grid = document.getElementById('cardGrid');
+  function deriveStatus(review) {
+    if (!review || !review.PublicationStatus) return 'NODATA';
+    const s = review.PublicationStatus;
+    if (s === 'Ready') return 'Ready';
+    if (s === 'ReviewRequired') return 'ReviewRequired';
+    if (s === 'Blocked') return 'Blocked';
+    return 'NODATA';
+  }
 
-  let filtered = sections.filter(s => activeFilter === 'ALL' || s.status === activeFilter);
-  if(q){
-    filtered = filtered.filter(s => {
-      const hay = [
-        s.def.SectionName, s.def.SectionDescription,
-        ...(s.def.RequirementIds||[]),
-        ...(s.compliance && s.compliance.missing_requirements ? s.compliance.missing_requirements : [])
-      ].join(' ').toLowerCase();
-      return hay.includes(q);
+  function buildSections(list) {
+    return list.map(item => {
+      const norm = normalizeSection(item);
+      const review = normalizeReview(norm.internalReview);
+      return {
+        sec: norm,
+        review: review,
+        status: deriveStatus(review),
+        coverage: review.CoverageStatus || 'Unknown',
+        evidenceGap: !!review.EvidenceGap,
+        missingEvidence: review.MissingEvidence || [],
+        traceability: review.Traceability || [],
+        qualityChecks: review.QualityChecks || {}
+      };
     });
   }
 
-  if(!filtered.length){
-    grid.innerHTML = '<div class="empty-state">No sections match this filter.</div>';
-    return;
+  function renderMeta(data) {
+    const bits = [];
+    // try to grab some metadata if present
+    if (data.proposalPlanId) bits.push('plan <b>' + esc(data.proposalPlanId.slice(0, 8)) + '…</b>');
+    if (data.companyId) bits.push('company <b>' + esc(data.companyId.slice(0, 8)) + '…</b>');
+    if (data.tenderId) bits.push('tender <b>' + esc(data.tenderId.slice(0, 8)) + '…</b>');
+    if (data.proposalId) bits.push('proposal <b>' + esc(data.proposalId.slice(0, 8)) + '…</b>');
+    document.getElementById('topbarMeta').innerHTML = bits.join(' &nbsp;·&nbsp; ') || 'no metadata';
   }
 
-  grid.innerHTML = filtered.map(cardHTML).join('');
-}
-
-function scoreColor(score){
-  if(score >= 80) return 'var(--pass)';
-  if(score >= 60) return 'var(--warn)';
-  return 'var(--fail)';
-}
-
-function cardHTML(s){
-  const def = s.def;
-  const compliance = s.compliance;
-  const validation = s.validation;
-  const status = s.status;
-
-  const scoreBlock = compliance && typeof compliance.score === 'number' ? `
-    <div class="score-bar-wrap">
-      <div class="score-bar-track"><div class="score-bar-fill" style="width:${compliance.score}%; background:${scoreColor(compliance.score)}"></div></div>
-      <div class="score-label"><span>Compliance score</span><span>${compliance.score}/100</span></div>
-    </div>` : '';
-
-  const reqChips = (def.RequirementIds||[]).map(r => `<span class="req-chip">${esc(r)}</span>`).join('');
-
-  let missingBlock = '';
-  if(compliance && compliance.missing_requirements && compliance.missing_requirements.length){
-    missingBlock = `
-      <div>
-        <div class="block-label">Missing requirements <span class="count">${compliance.missing_requirements.length}</span></div>
-        <ul class="item-list">${compliance.missing_requirements.map(m=>`<li class="li-missing">${esc(m)}</li>`).join('')}</ul>
-      </div>`;
+  function countSubsections(subs) {
+    if (!subs || !subs.length) return 0;
+    let n = subs.length;
+    subs.forEach(s => { n += countSubsections(s.generatedSubSections || s.GeneratedSubSections || []); });
+    return n;
   }
 
-  let unsupportedBlock = '';
-  if(compliance && compliance.unsupported_claims && compliance.unsupported_claims.length){
-    unsupportedBlock = `
-      <div>
-        <div class="block-label">Unsupported claims <span class="count">${compliance.unsupported_claims.length}</span></div>
-        <ul class="item-list">${compliance.unsupported_claims.map(m=>`<li class="li-unsupported">${esc(m)}</li>`).join('')}</ul>
-      </div>`;
+  function renderSummary() {
+    const total = sections.length;
+    const ready = sections.filter(s => s.status === 'Ready').length;
+    const review = sections.filter(s => s.status === 'ReviewRequired').length;
+    const blocked = sections.filter(s => s.status === 'Blocked').length;
+    const gaps = sections.filter(s => s.evidenceGap).length;
+    const missingTotal = sections.reduce((a, s) => a + s.missingEvidence.length, 0);
+    const complete = sections.filter(s => s.coverage === 'Complete').length;
+
+    const stats = [
+      { label: 'Sections', num: total, cls: '' },
+      { label: 'Ready', num: ready, cls: 'pass' },
+      { label: 'Review required', num: review, cls: 'warn' },
+      { label: 'Blocked', num: blocked, cls: 'fail' },
+      { label: 'Evidence gaps', num: gaps, cls: gaps ? 'warn' : '' },
+      { label: 'Complete coverage', num: complete, cls: 'pass' },
+      { label: 'Missing items', num: missingTotal, cls: missingTotal ? 'fail' : '' },
+    ];
+    document.getElementById('summaryStrip').innerHTML = stats.map(s =>
+      `<div class="stat ${s.cls}"><div class="stat-num">${s.num}</div><div class="stat-label">${s.label}</div></div>`
+    ).join('');
   }
 
-  let suggestionBlock = '';
-  if(compliance && compliance.improvement_suggestions && compliance.improvement_suggestions.length){
-    suggestionBlock = `
-      <div>
-        <div class="block-label">Suggestions <span class="count">${compliance.improvement_suggestions.length}</span></div>
-        <ul class="item-list">${compliance.improvement_suggestions.map(m=>`<li class="li-suggestion">${esc(m)}</li>`).join('')}</ul>
-      </div>`;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderGrid();
+    });
+  });
+  document.getElementById('searchBox').addEventListener('input', renderGrid);
+
+  function collectSubsectionText(subs, acc) {
+    (subs || []).forEach(s => {
+      acc.push(s.sectionName || s.SectionName, s.generatedContent || s.GeneratedContent);
+      collectSubsectionText(s.generatedSubSections || s.GeneratedSubSections, acc);
+    });
   }
 
-  let evidenceBlock = '';
-  if(def.EvidenceSummary && def.EvidenceSummary.length){
-    evidenceBlock = `
-      <div>
-        <div class="block-label">Evidence coverage <span class="count">${def.EvidenceSummary.length}</span></div>
-        <div class="evidence-grid">
-          ${def.EvidenceSummary.map(ev => `
-            <div class="ev-item ${ev.EvidenceFound ? 'found' : 'missing'}">
-              <div class="ev-top">
-                <span class="ev-req-id">${esc(ev.CanonicalRequirementId)} — ${ev.EvidenceFound ? 'FOUND' : 'MISSING'}</span>
-                <span class="ev-conf">conf ${ (ev.EvidenceConfidence*100).toFixed(0) }%</span>
+  function renderGrid() {
+    const q = document.getElementById('searchBox').value.trim().toLowerCase();
+    const grid = document.getElementById('cardGrid');
+
+    let filtered = sections.filter(s => {
+      if (activeFilter === 'ALL') return true;
+      if (activeFilter === 'GAP') return s.evidenceGap;
+      return s.status === activeFilter;
+    });
+
+    if (q) {
+      filtered = filtered.filter(s => {
+        const subText = [];
+        collectSubsectionText(s.sec.generatedSubSections, subText);
+        const hay = [
+          s.sec.sectionName, s.sec.generatedContent,
+          ...subText,
+          ...s.missingEvidence.map(m => m.RequirementId + ' ' + m.RequirementText),
+          ...s.traceability.map(t => t.RequirementId)
+        ].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    if (!filtered.length) {
+      grid.innerHTML = '<div class="empty-state">No sections match this filter.</div>';
+      return;
+    }
+
+    grid.innerHTML = filtered.map(cardHTML).join('');
+  }
+
+  function renderSubsections(subs) {
+    if (!subs || !subs.length) return '';
+    return `<div class="subsec-row">${subs.map(sub => {
+      const name = sub.sectionName || sub.SectionName || '';
+      const content = sub.generatedContent || sub.GeneratedContent || '';
+      const children = sub.generatedSubSections || sub.GeneratedSubSections || [];
+      return `
+        <div class="subsec-item">
+          <div class="subsec-name">${esc(name)}</div>
+          <div class="subsec-desc ${content ? '' : 'empty'}">${content ? esc(content) : 'No content generated.'}</div>
+          ${children.length ? `<div class="subsec-children">${renderSubsections(children)}</div>` : ''}
+        </div>
+      `;
+    }).join('')}</div>`;
+  }
+
+  function cardHTML(s) {
+    const sec = s.sec;
+    const status = s.status;
+    const subCount = countSubsections(sec.generatedSubSections);
+
+    let missingBlock = '';
+    if (s.missingEvidence.length) {
+      missingBlock = `
+        <div>
+          <div class="block-label">Missing evidence <span class="count">${s.missingEvidence.length}</span></div>
+          <div class="gap-grid">
+            ${s.missingEvidence.map(m => `
+              <div class="gap-item">
+                <div class="gap-top">
+                  <span class="gap-req-id">${esc(m.RequirementId)}</span>
+                  ${m.GapType ? `<span class="gap-type">${esc(m.GapType)}</span>` : ''}
+                </div>
+                <div class="gap-text">${esc(m.RequirementText)}</div>
+                ${m.MissingInformation?.length ? `<ul class="gap-missing-list">${m.MissingInformation.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
+                ${m.RecommendedResolution ? `<div class="gap-reason">${esc(m.RecommendedResolution)}</div>` : ''}
               </div>
-              <div class="ev-text">${esc(ev.CanonicalRequirement)}</div>
-              ${ev.MissingEvidenceReason ? `<div class="ev-reason">${esc(ev.MissingEvidenceReason)}</div>` : ''}
-            </div>
-          `).join('')}
-        </div>
-      </div>`;
-  }
+            `).join('')}
+          </div>
+        </div>`;
+    }
 
-  let subsecBlock = '';
-  if(def.SubSections && def.SubSections.length){
-    subsecBlock = `
-      <div>
-        <div class="block-label">Sub-sections <span class="count">${def.SubSections.length}</span></div>
-        <div class="subsec-row">
-          ${def.SubSections.map(sub => `
-            <div class="subsec-item">
-              <div class="subsec-name">${esc(sub.SubSectionName)}</div>
-              <div class="subsec-desc">${esc(sub.SubSectionDescription||'')}</div>
-              <div class="subsec-flags">
-                <span class="flag ${sub.EvidenceRequired?'on':''}">${sub.EvidenceRequired?'✓':'–'} evidence</span>
-                <span class="flag ${sub.CaseStudyRequired?'on':''}">${sub.CaseStudyRequired?'✓':'–'} case study</span>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>`;
-  }
+    let traceBlock = '';
+    if (s.traceability.length) {
+      traceBlock = `
+        <div>
+          <div class="block-label">Requirements traced <span class="count">${s.traceability.length}</span></div>
+          <div class="req-chip-row">${s.traceability.map(t => `<span class="req-chip">${esc(t.RequirementId)}</span>`).join('')}</div>
+        </div>`;
+    }
 
-  let noDataBlock = '';
-  if(status === 'NODATA'){
-    const errs = (validation && validation.errors) || [];
-    noDataBlock = `<div class="block-label" style="color:var(--fail)">No generated content</div>
-      <ul class="item-list">${errs.map(e=>`<li class="li-missing">${esc(e)}</li>`).join('') || '<li class="li-missing">Section was not generated.</li>'}</ul>`;
-  }
+    let subsecBlock = '';
+    const subs = sec.generatedSubSections;
+    if (subs?.length) {
+      subsecBlock = `
+        <div>
+          <div class="block-label">Sub-sections <span class="count">${subCount}</span></div>
+          ${renderSubsections(subs)}
+        </div>`;
+    }
 
-  const tokenTotal = s.res && s.res.token_usage && s.res.token_usage.total ? s.res.token_usage.total.total_tokens : null;
+    // Quality checks
+    const qc = s.qualityChecks || {};
+    const qcItems = [
+      { label: 'Requirements covered', val: qc.RequirementsCovered },
+      { label: 'Eval criteria covered', val: qc.EvaluationCriteriaCovered },
+      { label: 'Evidence grounded', val: qc.EvidenceGrounded },
+      { label: 'No hallucinations', val: qc.NoHallucinations },
+      { label: 'Case study included', val: qc.CaseStudyIncluded },
+      { label: 'Win themes included', val: qc.WinThemesIncluded },
+    ];
+    const qcHtml = qcItems.filter(i => i.val !== undefined).map(i =>
+      `<span class="qc-item"><span class="${i.val ? 'pass' : 'fail'}">${i.val ? '✓' : '✗'}</span> ${i.label}</span>`
+    ).join('');
 
-  return `
-    <div class="card" data-status="${status}">
-      <div class="card-head">
-        <div class="group-tag">${esc(def.GroupName || 'Ungrouped')}${def.AutoCreated ? ' · auto-created' : ''}</div>
-        <div class="card-top-row">
-          <div class="card-title">${esc(def.SectionName)}</div>
-          <div class="status-pill ${status}">${status === 'NODATA' ? 'NO DATA' : status}</div>
+    const statusLabel = status === 'Ready' ? 'READY' : (status === 'ReviewRequired' ? 'REVIEW REQUIRED' : (status === 'Blocked' ? 'BLOCKED' : 'NO DATA'));
+    const coverageClass = 'coverage-' + (s.coverage === 'Complete' || s.coverage === 'Partial' || s.coverage === 'InsufficientEvidence' ? s.coverage : 'Unknown');
+
+    return `
+      <div class="card" data-status="${status}">
+        <div class="card-head">
+          <div class="group-tag"><span class="coverage-dot ${coverageClass}"></span>Coverage: ${esc(s.coverage)}</div>
+          <div class="card-top-row">
+            <div class="card-title">${esc(sec.sectionName)}</div>
+            <div class="status-pill ${status}">${statusLabel}</div>
+          </div>
+          <div class="card-desc ${sec.generatedContent ? '' : 'empty'}">${sec.generatedContent ? esc(sec.generatedContent) : 'No content generated.'}</div>
+          <div class="meta-row">
+            ${s.evidenceGap ? '<span class="meta-item gap"><span class="priority-dot"></span>Evidence gap</span>' : ''}
+            <span class="meta-item">${subCount} sub-section${subCount === 1 ? '' : 's'}</span>
+            <span class="meta-item">${s.missingEvidence.length} missing</span>
+            <span class="meta-item">${s.traceability.length} traced</span>
+          </div>
+          ${qcHtml ? `<div class="quality-checks">${qcHtml}</div>` : ''}
         </div>
-        <div class="card-desc">${esc(def.SectionDescription||'')}</div>
-        <div class="meta-row">
-          <span class="meta-item"><span class="priority-dot priority-${def.Priority}"></span>${esc(def.Priority||'—')} priority</span>
-          <span class="meta-item">${def.Required ? 'Mandatory' : 'Optional'}</span>
-          ${def.EvidenceRequired ? '<span class="meta-item">Evidence required</span>' : ''}
-          ${def.CaseStudyRequired ? '<span class="meta-item">Case study required</span>' : ''}
+        <div class="card-body">
+          ${subsecBlock}
+          ${missingBlock}
+          ${traceBlock}
         </div>
-        ${reqChips ? `<div class="req-chip-row" style="margin-top:10px;">${reqChips}</div>` : ''}
-        ${scoreBlock}
+        <div class="card-footer">
+          <span>${esc(sec.sectionId)}</span>
+          <span>${sec.evaluationCriteria?.length ? 'EC: ' + sec.evaluationCriteria.length : ''}</span>
+        </div>
       </div>
-      <div class="card-body">
-        ${noDataBlock}
-        ${missingBlock}
-        ${unsupportedBlock}
-        ${evidenceBlock}
-        ${subsecBlock}
-        ${suggestionBlock}
-      </div>
-      <div class="card-footer">
-        <span>${def.SectionId}</span>
-        <span>${tokenTotal ? tokenTotal + ' tokens' : ''}</span>
-      </div>
-    </div>
-  `;
-}
+    `;
+  }
 </script>
 </body>
 </html>

@@ -189,6 +189,7 @@ async def generate_proposal(
     start_time = time.perf_counter()
 
     correlation_id = str(uuid.uuid4())
+    version_id = str(uuid.uuid4())
 
     print(f"Run ID : {correlation_id}")
 
@@ -250,6 +251,7 @@ async def generate_proposal(
                 "project_id": request.project_id,
                 "proposal_plan_id": proposal_plan_id,
                 "proposal_id": proposal_id,
+                "version_id": version_id,
             }
         )
         

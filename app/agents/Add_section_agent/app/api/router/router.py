@@ -2,11 +2,11 @@ import os
 import json
 import time
 from fastapi import APIRouter, HTTPException, status,Request
-from pydantic import BaseModel,Optional
+from pydantic import BaseModel
 from app.infrastructure.token_usage import TokenUsageService
 from app.infrastructure.agent.add_section_agent import add_section_agent
 from app.utils.logger import AgentLogger
-
+from typing import Optional
 router = APIRouter(
     prefix="/section",
     tags=["Add proposal section Agent"]
@@ -97,7 +97,7 @@ async def generate_section(request: AddSectionRequest,http_request: Request):
                     )
 
         # -----------------------------------------------------------------
-        # 🔥 DEEP SANITIZATION BLOCK (Bulletproof Cleanup)
+        #  DEEP SANITIZATION BLOCK (Bulletproof Cleanup)
         # -----------------------------------------------------------------
         if isinstance(response, dict):
             # Clean Top Level
