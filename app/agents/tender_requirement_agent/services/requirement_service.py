@@ -144,6 +144,9 @@ class RequirementService:
         user_name: str,
         status: str,
     ) -> Dict[str, Any]:
+        """
+        Process all tender chunks, detect requirements, and return summary metrics.
+        """
 
         tracking_token = logger.start(
             message="Tender processing started",
@@ -151,17 +154,42 @@ class RequirementService:
         )
 
         try:
-
             retrieval_result = tender_retriever.retrieve_chunks(
                 tender_id=tender_id,
             )
 
-            chunks = retrieval_result["chunks"]
+            chunks = retrieval_result.get("chunks", [])
+
+            if not chunks:
+                response = {
+                    "CompanyId": company_id,
+                    "TenderId": tender_id,
+                    "TotalChunks": 0,
+                    "ProcessedChunks": 0,
+                    "RequirementsProcessed": 0,
+                    "RequirementsGenerated": 0,
+                    "ChunksWithoutRequirements": 0,
+                    "Status": "NoChunksFound",
+                    "TokenUsage": {},
+                }
+
+                logger.end(
+                    tracking_token=tracking_token,
+                    is_success=True,
+                    message="No chunks found for tender",
+                    event_type="TenderProcessingCompleted",
+                    payload={
+                        "company_id": company_id,
+                        "tender_id": tender_id,
+                        "status": "NoChunksFound",
+                    },
+                )
+
+                return response
 
             # ----------------------------------------------------
-            # Create Tasks
+            # Create & execute batch processing tasks
             # ----------------------------------------------------
-
             tasks = [
                 self.process_batch(
                     batch=batch,
@@ -170,58 +198,95 @@ class RequirementService:
                     user_name=user_name,
                     status=status,
                 )
-                for batch in create_batches(
-                    chunks,
-                    self.processing_batch_size,
-                )
+                for batch in create_batches(chunks, self.processing_batch_size)
             ]
 
-            # ----------------------------------------------------
-            # Execute batches in parallel
-            # ----------------------------------------------------
-
-            batch_results = await asyncio.gather(*tasks)
-
-            # ----------------------------------------------------
-            # Flatten results
-            # ----------------------------------------------------
-
-            all_results = [
-                result
-                for batch in batch_results
-                for result in batch
-            ]
-
-            total_token_usage = self.aggregate_token_usage(
-                    all_results
-                )
-
-            business_status = (
-                "Completed"
-                if len(all_results) == len(chunks)
-                else "PartiallyCompleted"
+            batch_results = await asyncio.gather(
+                *tasks,
+                return_exceptions=True,
             )
 
+            # ----------------------------------------------------
+            # Flatten results & track batch failures
+            # ----------------------------------------------------
+            all_results = []
+            failed_batches = []
+
+            for index, result in enumerate(batch_results):
+                if isinstance(result, Exception):
+                    failed_batches.append(
+                        {
+                            "batch_index": index,
+                            "error": str(result),
+                        }
+                    )
+                    continue
+
+                all_results.extend(result)
+
+            # ----------------------------------------------------
+            # Metric Calculations
+            # ----------------------------------------------------
+            total_chunks = len(chunks)
+            processed_chunks = len(all_results)
+
+            requirements_processed = 0
+            chunks_with_requirements = 0
+            chunks_without_requirements = 0
+
+            for res in all_results:
+                reqs = res.get("requirements", []) or []
+                req_count = len(reqs)
+
+                requirements_processed += req_count
+
+                if req_count > 0:
+                    chunks_with_requirements += 1
+                else:
+                    chunks_without_requirements += 1
+
+            # ----------------------------------------------------
+            # Token usage aggregation & Business status calculation
+            # ----------------------------------------------------
+            total_token_usage = self.aggregate_token_usage(all_results)
+
+            if processed_chunks == total_chunks:
+                business_status = "Completed"
+            elif processed_chunks == 0:
+                business_status = "Failed"
+            else:
+                business_status = "PartiallyCompleted"
+
+            # ----------------------------------------------------
+            # Final Aggregated Summary Response
+            # ----------------------------------------------------
             response = {
                 "CompanyId": company_id,
                 "TenderId": tender_id,
-                "TotalChunks": len(chunks),
-                "ProcessedChunks": len(all_results),
+                "TotalChunks": total_chunks,
+                "ProcessedChunks": processed_chunks,
+                "RequirementsProcessed": requirements_processed,
+                "RequirementsGenerated": chunks_with_requirements,
+                "ChunksWithoutRequirements": chunks_without_requirements,
+                "FailedBatches": failed_batches,
                 "Status": business_status,
                 "TokenUsage": total_token_usage,
-                "Chunks": all_results,
             }
 
             logger.end(
                 tracking_token=tracking_token,
-                is_success=True,
+                is_success=business_status != "Failed",
                 message="Tender processing completed",
                 event_type="TenderProcessingCompleted",
                 payload={
                     "company_id": company_id,
                     "tender_id": tender_id,
-                    "total_chunks": len(chunks),
-                    "processed_chunks": len(all_results),
+                    "total_chunks": total_chunks,
+                    "processed_chunks": processed_chunks,
+                    "requirements_processed": requirements_processed,
+                    "requirements_generated": chunks_with_requirements,
+                    "chunks_without_requirements": chunks_without_requirements,
+                    "failed_batches": len(failed_batches),
                     "status": business_status,
                 },
             )
@@ -229,7 +294,6 @@ class RequirementService:
             return response
 
         except Exception as ex:
-
             logger.end(
                 tracking_token=tracking_token,
                 is_success=False,
@@ -241,5 +305,4 @@ class RequirementService:
                     "error": str(ex),
                 },
             )
-
             raise
