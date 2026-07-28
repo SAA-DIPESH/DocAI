@@ -79,9 +79,28 @@ async def generate_section_plan(request: SectionPlannerRequest) -> ProposalPlanR
         request.project_id,
         request.is_regenerate,
     )
+    event_logger.debug_step(
+        "Request received",
+        step="request_received",
+        payload=_request_payload(request),
+    )
     try:
+        event_logger.debug_step(
+            "Invoking SectionPlannerService.execute",
+            step="service_execute_start",
+            payload=_request_payload(request),
+        )
         persisted = await SectionPlannerService(MongoPlannerRepository()).execute(request)
         response = ProposalPlanResponse.model_validate(persisted)
+        event_logger.debug_step(
+            "SectionPlannerService.execute response",
+            step="service_execute_response",
+            payload={
+                "proposal_plan_id": response.ProposalPlanId,
+                "plan_status": response.PlanStatus,
+                "proposal_group_count": len(response.ProposalGroups),
+            },
+        )
         event_logger.end(
             tracking_token=tracking_token,
             is_success=True,
@@ -182,8 +201,18 @@ async def get_latest_section_plan(
         tender_id,
         project_id,
     )
+    event_logger.debug_step(
+        "Request received",
+        step="request_received",
+        payload=payload,
+    )
     try:
         plan = MongoPlannerRepository().load_latest_plan(company_id, tender_id, project_id)
+        event_logger.debug_step(
+            "MongoPlannerRepository.load_latest_plan response",
+            step="repository_load_latest_plan",
+            payload={**payload, "found": plan is not None},
+        )
         if plan is None:
             event_logger.end(
                 tracking_token=tracking_token,

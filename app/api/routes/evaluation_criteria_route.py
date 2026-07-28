@@ -24,7 +24,7 @@ _execution_lock = Lock()
 terminal_logger = logging.getLogger("uvicorn.error")
 
 
-def _run(request: EvaluationCriteriaRequest) -> dict:
+def _run(request: EvaluationCriteriaRequest, logger: Logging) -> dict:
     """
     Always generate fresh Evaluation Criteria output.
 
@@ -45,9 +45,27 @@ def _run(request: EvaluationCriteriaRequest) -> dict:
             request.tender_id,
             status,
         )
+        logger.debug_step(
+            "Request received",
+            step="request_received",
+            payload={
+                "mode": mode,
+                "run_id": run_id,
+                "company_id": request.company_id,
+                "tender_id": request.tender_id,
+                "is_regenerated": request.is_regenerated,
+                "user_id": request.user_id,
+                "project_id": request.project_id,
+            },
+        )
 
         # Always executes Qdrant retrieval, OpenAI extraction and validation.
         # persist=True makes the agent insert a new MongoDB document.
+        logger.debug_step(
+            "Invoking EvaluationCriteriaAgent.execute",
+            step="agent_execute_start",
+            payload={"run_id": run_id},
+        )
         output = EvaluationCriteriaAgent.execute(
             company_id=request.company_id,
             tender_id=request.tender_id,
@@ -61,6 +79,11 @@ def _run(request: EvaluationCriteriaRequest) -> dict:
                 "jwt_token": request.jwt_token,
             },
             persist=True,
+        )
+        logger.debug_step(
+            "EvaluationCriteriaAgent.execute response",
+            step="agent_execute_response",
+            payload={"run_id": run_id, "response": output},
         )
 
         terminal_logger.info(
@@ -93,7 +116,7 @@ async def evaluate(request: EvaluationCriteriaRequest) -> dict:
     )
 
     try:
-        output = await asyncio.to_thread(_run, request)
+        output = await asyncio.to_thread(_run, request, logger)
 
         logger.end(
             tracking,
