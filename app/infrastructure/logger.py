@@ -5,6 +5,7 @@ import time
 import requests
 import logging
 
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Optional, Dict
 from dotenv import load_dotenv
@@ -14,8 +15,20 @@ load_dotenv()
 terminal_logger = logging.getLogger("uvicorn.error")
 
 
+def _parse_bool(value: Optional[str], default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
 class Logging:
-    def __init__(self,agent_name: str,source_module: str,timeout: int = 10,) -> None:
+    def __init__(
+        self,
+        agent_name: str,
+        source_module: str,
+        timeout: int = 10,
+        debug: Optional[bool] = None,
+    ) -> None:
 
         self.base_url = os.getenv("LOG_URL")
 
@@ -27,6 +40,39 @@ class Logging:
         self.agent_name = agent_name
         self.source_module = source_module
         self.timeout = timeout
+
+        # debug mode decides verbosity: detailed step/request-response logs
+        # when True, only high-level start/complete/fail events when False.
+        # Resolved from .env (DEBUG=True/False) unless explicitly overridden.
+        self.debug = (
+            debug if debug is not None else _parse_bool(os.getenv("DEBUG"))
+        )
+        self._debug_logger = (
+            self._build_debug_logger() if self.debug else None
+        )
+
+    def _build_debug_logger(self) -> logging.Logger:
+        debug_logger = logging.getLogger(f"debug.{self.agent_name}")
+        debug_logger.setLevel(logging.DEBUG)
+
+        if not any(
+            isinstance(handler, logging.FileHandler)
+            for handler in debug_logger.handlers
+        ):
+            log_dir = Path(os.getenv("DEBUG_LOG_DIR", "logs"))
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+            file_handler = logging.FileHandler(
+                log_dir / "debug.log", encoding="utf-8"
+            )
+            file_handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s | %(name)s | %(message)s"
+                )
+            )
+            debug_logger.addHandler(file_handler)
+
+        return debug_logger
 
     def log(
         self,
@@ -151,6 +197,43 @@ class Logging:
             correlation_id=tracking_token[
                 "correlation_id"
             ],
+        )
+
+    def debug_step(
+        self,
+        message: str,
+        step: Optional[str] = None,
+        payload: Optional[Dict[str, Any]] = None,
+        correlation_id: Optional[str] = None,
+    ) -> None:
+        """
+        Detailed, step-by-step / request-response logging.
+
+        No-op when debug mode is off, so production stays limited to the
+        high-level start/end events logged via start()/end()/log().
+        """
+
+        if not self.debug or self._debug_logger is None:
+            return
+
+        self._debug_logger.debug(
+            json.dumps(
+                {
+                    "agentName": self.agent_name,
+                    "sourceModule": self.source_module,
+                    "step": step,
+                    "message": message,
+                    "correlationId": correlation_id,
+                    "payload": payload or {},
+                },
+                default=str,
+            )
+        )
+        terminal_logger.debug(
+            "[Debug] %s | step=%s | correlation_id=%s",
+            message,
+            step,
+            correlation_id,
         )
 
 
