@@ -33,7 +33,7 @@ def extract_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
         response = requests.post(
             API_URL,
             json=payload,
-            timeout=300,
+          
         )
         response.raise_for_status()
 

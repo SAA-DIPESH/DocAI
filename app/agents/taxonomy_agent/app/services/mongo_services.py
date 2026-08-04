@@ -26,7 +26,7 @@ def _serialize_document(value: Any) -> Any:
 
 
 class TaxonomyRepository:
-    COLLECTION = "DocumentTaxonomy"
+    COLLECTION = "DocumentTaxonomies"
 
     @classmethod
     def _collection(cls):

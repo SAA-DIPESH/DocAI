@@ -29,11 +29,11 @@ api_router.include_router(taxonomy_router)
 # Grammar AI Routes
 api_router.include_router(grammar_router)
 
-# # Win Theme Extractor Routes
-# api_router.include_router(wintheam_extractor_router)
+# Win Theme Extractor Routes
+api_router.include_router(wintheam_extractor_router)
 
-# # Win Theme Generator Routes
-# api_router.include_router(wintheam_generator_router)
+# Win Theme Generator Routes
+api_router.include_router(wintheam_generator_router)
 
 # Tender Section Planner Routes
 api_router.include_router(tender_section_planner_router, prefix="/api/v1/agents")
