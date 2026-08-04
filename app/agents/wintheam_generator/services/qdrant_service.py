@@ -1,47 +1,61 @@
 import os
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import (
+    FieldCondition,
+    Filter,
+    MatchValue,
+)
 
 load_dotenv()
 
 
 def _load_cross_encoder(model_name: str):
-    """Load the optional native reranker only when Win Theme retrieval runs."""
+    """Load the reranker model once."""
     try:
         from sentence_transformers import CrossEncoder
     except (ImportError, OSError) as exc:
         raise RuntimeError(
-            "Unable to load the Win Theme cross-encoder reranker. Verify the "
-            "sentence-transformers/scikit-learn installation and local Application "
-            "Control policy."
+            "Unable to load the Win Theme cross-encoder reranker. "
+            "Verify the sentence-transformers/scikit-learn installation."
         ) from exc
+
     return CrossEncoder(model_name)
+
+
+# ---------------------------------------------------------------------
+# Singleton instances (loaded once when this module is imported)
+# ---------------------------------------------------------------------
+
+QDRANT_CLIENT = QdrantClient(
+    url=os.getenv("QDRANT_URL"),
+)
+
+EMBEDDING_MODEL = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+    api_key=os.getenv("OPENAI_API_KEY"),
+)
+
+RERANKER = _load_cross_encoder(
+    "cross-encoder/ms-marco-MiniLM-L-6-v2"
+)
 
 
 class CompanyRetriever:
     def __init__(
         self,
-        qdrant_url: Optional[str] = None,
         collection_name: Optional[str] = None,
-        reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
     ):
-        self.qdrant_client = QdrantClient(
-            url=qdrant_url or os.getenv("QDRANT_URL")
-        )
+        self.qdrant_client = QDRANT_CLIENT
+        self.embedding_model = EMBEDDING_MODEL
+        self.reranker = RERANKER
 
-        self.embedding_model = OpenAIEmbeddings(
-            model="text-embedding-3-small",
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
-
-        self.reranker = _load_cross_encoder(reranker_model_name)
-
-        self.collection_name = collection_name or os.getenv(
-            "QDRANT_COLLECTION_NAME"
+        self.collection_name = (
+            collection_name
+            or os.getenv("QDRANT_COLLECTION_NAME")
         )
 
     def retrieve(
@@ -56,36 +70,30 @@ class CompanyRetriever:
         query_variants = anchor_group.get("query_variants", [])
 
         search_queries = [
-            anchor_query,
-            *query_variants,
-        ]
-
-        search_queries = [
             query.strip()
-            for query in search_queries
+            for query in [anchor_query, *query_variants]
             if query and query.strip()
         ]
 
-        metadata_filter = self._build_metadata_filter(
-            company_id=company_id
-        )
+        metadata_filter = self._build_metadata_filter(company_id)
 
         all_results: List[Dict[str, Any]] = []
 
         for query in search_queries:
-            results = self._dense_search(
-                query=query,
-                metadata_filter=metadata_filter,
-                limit=search_limit,
+            all_results.extend(
+                self._dense_search(
+                    query=query,
+                    metadata_filter=metadata_filter,
+                    limit=search_limit,
+                )
             )
-            all_results.extend(results)
 
-        deduplicated_results = self._deduplicate_chunks(all_results)
-
-        rerank_query = self._build_rerank_query(anchor_group)
+        deduplicated_results = self._deduplicate_chunks(
+            all_results
+        )
 
         reranked_results = self._rerank(
-            query=rerank_query,
+            query=self._build_rerank_query(anchor_group),
             chunks=deduplicated_results,
             top_k=top_k,
         )
@@ -124,7 +132,7 @@ class CompanyRetriever:
 
         dense_vector = self.embedding_model.embed_query(query)
 
-        search_results = self.qdrant_client.query_points(
+        results = self.qdrant_client.query_points(
             collection_name=self.collection_name,
             query=dense_vector,
             query_filter=metadata_filter,
@@ -142,11 +150,13 @@ class CompanyRetriever:
                 "retrieval_metadata": {
                     "dense_score": float(result.score),
                     "title": result.payload.get("Title"),
-                    "related_section": result.payload.get("RelatedSection"),
+                    "related_section": result.payload.get(
+                        "RelatedSection"
+                    ),
                     "source_query": query,
                 },
             }
-            for result in search_results
+            for result in results
         ]
 
     def _deduplicate_chunks(
@@ -157,27 +167,19 @@ class CompanyRetriever:
         unique_chunks: Dict[str, Dict[str, Any]] = {}
 
         for chunk in chunks:
-            chunk_key = chunk.get("chunk_id")
+            chunk_id = chunk.get("chunk_id")
 
-            if not chunk_key:
+            if not chunk_id:
                 continue
 
-            existing_chunk = unique_chunks.get(chunk_key)
+            existing = unique_chunks.get(chunk_id)
 
-            if existing_chunk is None:
-                unique_chunks[chunk_key] = chunk
-                continue
-
-            existing_score = existing_chunk.get(
-                "retrieval_metadata", {}
-            ).get("dense_score", 0)
-
-            current_score = chunk.get(
-                "retrieval_metadata", {}
-            ).get("dense_score", 0)
-
-            if current_score > existing_score:
-                unique_chunks[chunk_key] = chunk
+            if (
+                existing is None
+                or chunk["retrieval_metadata"]["dense_score"]
+                > existing["retrieval_metadata"]["dense_score"]
+            ):
+                unique_chunks[chunk_id] = chunk
 
         return list(unique_chunks.values())
 
@@ -186,15 +188,18 @@ class CompanyRetriever:
         anchor_group: Dict[str, Any],
     ) -> str:
 
-        query_parts = [
-            anchor_group.get("objective", ""),
-            anchor_group.get("anchor_query", ""),
-            " ".join(anchor_group.get("query_variants", [])),
-        ]
-
         return " ".join(
             part.strip()
-            for part in query_parts
+            for part in [
+                anchor_group.get("objective", ""),
+                anchor_group.get("anchor_query", ""),
+                " ".join(
+                    anchor_group.get(
+                        "query_variants",
+                        [],
+                    )
+                ),
+            ]
             if part and part.strip()
         )
 
@@ -206,27 +211,35 @@ class CompanyRetriever:
     ) -> List[Dict[str, Any]]:
 
         valid_chunks = [
-            chunk for chunk in chunks
+            chunk
+            for chunk in chunks
             if chunk.get("text")
         ]
 
         if not valid_chunks:
             return []
 
-        pairs = [
-            [query, chunk["text"]]
-            for chunk in valid_chunks
-        ]
-
-        scores = self.reranker.predict(pairs)
+        scores = self.reranker.predict(
+            [[query, chunk["text"]] for chunk in valid_chunks]
+        )
 
         for chunk, score in zip(valid_chunks, scores):
-            chunk["retrieval_metadata"]["rerank_score"] = float(score)
+            chunk["retrieval_metadata"][
+                "rerank_score"
+            ] = float(score)
 
-        valid_chunks = sorted(
-            valid_chunks,
-            key=lambda x: x["retrieval_metadata"]["rerank_score"],
+        valid_chunks.sort(
+            key=lambda chunk: chunk["retrieval_metadata"][
+                "rerank_score"
+            ],
             reverse=True,
         )
 
         return valid_chunks[:top_k]
+
+
+# ---------------------------------------------------------------------
+# Singleton retriever
+# ---------------------------------------------------------------------
+
+COMPANY_RETRIEVER = CompanyRetriever()

@@ -14,25 +14,19 @@ router = APIRouter(
     tags=["Win Theme Generator"],
 )
 
-
 logger = Logging(
     agent_name="wintheam_generator",
     source_module="api_route",
 )
 
 
-@router.post("/generate", response_model=WinThemeResponse)
-def generate_win_theme(request: WinThemeRequest):
+def build_initial_state(
+    request: WinThemeRequest,
+    request_id: str,
+) -> dict:
+    """Create the initial graph state."""
 
-    request_id = str(uuid.uuid4())
-
-    tracking_token = logger.start(
-        message="Win theme generation started",
-        event_type="WinThemeGenerationStarted",
-        correlation_id=request_id,
-    )
-
-    initial_state = {
+    return {
         "request_id": request_id,
         "company_id": request.company_id,
         "industry": request.industry,
@@ -64,13 +58,29 @@ def generate_win_theme(request: WinThemeRequest):
         "node_latencies": {},
     }
 
-    try:
 
+@router.post("/generate", response_model=WinThemeResponse)
+def generate_win_theme(request: WinThemeRequest):
+
+    request_id = str(uuid.uuid4())
+
+    tracking_token = logger.start(
+        message="Win theme generation started",
+        event_type="WinThemeGenerationStarted",
+        correlation_id=request_id,
+    )
+
+    try:
         start = time.perf_counter()
 
-        result = win_theme_graph.invoke(initial_state)
+        result = win_theme_graph.invoke(
+            build_initial_state(request, request_id)
+        )
 
-        execution_time = round(time.perf_counter() - start, 2)
+        execution_time = round(
+            time.perf_counter() - start,
+            2,
+        )
 
         logger.end(
             tracking_token=tracking_token,
@@ -85,9 +95,14 @@ def generate_win_theme(request: WinThemeRequest):
                 "status": result.get("status"),
                 "current_step": result.get("current_step"),
                 "validation_status": result.get("validation_status"),
-                "generated_themes_count": len(result.get("generated_themes", [])),
+                "generated_themes_count": len(
+                    result.get("generated_themes", [])
+                ),
                 "execution_time_seconds": execution_time,
-                "node_latencies": result.get("node_latencies", {}),
+                "node_latencies": result.get(
+                    "node_latencies",
+                    {},
+                ),
             },
         )
 
@@ -102,6 +117,11 @@ def generate_win_theme(request: WinThemeRequest):
         )
 
     except Exception as exc:
+
+        logger.exception(
+            message="Win theme generation failed.",
+            exception=exc,
+        )
 
         logger.end(
             tracking_token=tracking_token,
@@ -120,4 +140,4 @@ def generate_win_theme(request: WinThemeRequest):
         raise HTTPException(
             status_code=500,
             detail="Internal server error",
-        )
+        ) from exc

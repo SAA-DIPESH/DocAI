@@ -1,11 +1,12 @@
 import time
 from typing import Dict, Any
+
 from app.agents.wintheam_generator.graph.agent_state import WinThemeState
 
 
 def select_current_anchor_node(state: WinThemeState) -> Dict[str, Any]:
     """
-    Selects the current anchor group for the loop using current_anchor_index.
+    Select the current anchor group based on the current anchor index.
     """
 
     start = time.perf_counter()
@@ -14,9 +15,9 @@ def select_current_anchor_node(state: WinThemeState) -> Dict[str, Any]:
         anchor_groups = state.get("anchor_groups", [])
         current_index = state.get("current_anchor_index", 0)
 
-        if current_index >= len(anchor_groups):
-            end = time.perf_counter()
+        latency = round(time.perf_counter() - start, 3)
 
+        if current_index >= len(anchor_groups):
             return {
                 "next_step": "end",
                 "current_anchor_group": None,
@@ -29,16 +30,12 @@ def select_current_anchor_node(state: WinThemeState) -> Dict[str, Any]:
                 "error": None,
                 "node_latencies": {
                     **state.get("node_latencies", {}),
-                    "select_current_anchor": round(end - start, 3),
+                    "select_current_anchor": latency,
                 },
             }
 
-        current_anchor_group = anchor_groups[current_index]
-
-        end = time.perf_counter()
-
         return {
-            "current_anchor_group": current_anchor_group,
+            "current_anchor_group": anchor_groups[current_index],
             "current_evidence": [],
             "current_win_theme": None,
             "retrieval_status": None,
@@ -49,12 +46,12 @@ def select_current_anchor_node(state: WinThemeState) -> Dict[str, Any]:
             "error": None,
             "node_latencies": {
                 **state.get("node_latencies", {}),
-                "select_current_anchor": round(end - start, 3),
+                "select_current_anchor": latency,
             },
         }
 
     except Exception as e:
-        end = time.perf_counter()
+        latency = round(time.perf_counter() - start, 3)
 
         return {
             "current_anchor_group": None,
@@ -64,11 +61,14 @@ def select_current_anchor_node(state: WinThemeState) -> Dict[str, Any]:
             "next_step": "end",
             "status": "failed",
             "validation_status": "failed",
-            "warnings": [*state.get("warnings", []), str(e)],
+            "warnings": [
+                *state.get("warnings", []),
+                str(e),
+            ],
             "current_step": "select_current_anchor",
             "error": str(e),
             "node_latencies": {
                 **state.get("node_latencies", {}),
-                "select_current_anchor": round(end - start, 3),
+                "select_current_anchor": latency,
             },
         }
