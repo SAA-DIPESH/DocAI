@@ -230,3 +230,9 @@ class CompanyRetriever:
         )
 
         return valid_chunks[:top_k]
+
+
+
+
+# Create a object
+company_retriever = CompanyRetriever()

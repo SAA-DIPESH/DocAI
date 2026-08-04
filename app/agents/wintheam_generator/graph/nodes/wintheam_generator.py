@@ -1,26 +1,47 @@
 import time
 from typing import Dict, Any
-from pathlib import Path
 
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
 from app.agents.wintheam_generator.graph.agent_state import WinThemeState
-from app.utils.helpers import read_markdown_file
-# from app.infrastructure.load_llms import llm
 from app.infrastructure.load_llms import create_llm
-from app.agents.wintheam_generator.prompts.prompt_loader import CONSTITUTION, SPECIFICATION, SYS_PROMPT
-# from app.utils.token_usage_logger import extract_token_usage, TokenUsageService
+from app.agents.wintheam_generator.prompts.prompt_loader import (
+    CONSTITUTION,
+    SPECIFICATION,
+    SYS_PROMPT,
+)
 
-# Load LLM
+# -----------------------------
+# Initialize once
+# -----------------------------
 llm = create_llm()
 
+PARSER = JsonOutputParser()
 
-# CONSTITUTION_PATH & SPECIFICATION_PATH files
-# CONSTITUTION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\constitution.md").expanduser().resolve()
-# SPECIFICATION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\specification.md").expanduser().resolve()
-# SYS_PROMPT =  Path( r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_generator\input_files\system_prompt.md").expanduser().resolve()
+PROMPT = ChatPromptTemplate.from_messages(
+    [
+        SystemMessage(content=CONSTITUTION),
+        SystemMessage(content=SPECIFICATION),
+        SystemMessage(content=SYS_PROMPT),
+        (
+            "human",
+            """
+Generate one company capability win theme using the following input.
+
+Input JSON:
+{llm_input}
+
+Return JSON only.
+""",
+        ),
+    ]
+)
+
+CHAIN = PROMPT | llm
+
+
 
 def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
     """
@@ -33,24 +54,6 @@ def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
         context = state["context"]
         current_anchor_group = state["current_anchor_group"]
         current_evidence = state.get("current_evidence", [])
-
-        # cons_content = read_markdown_file(CONSTITUTION_PATH, file_label="Constitution")
-        # spec_content = read_markdown_file(SPECIFICATION_PATH, file_label="Specification")
-        # sys_content = read_markdown_file(SYS_PROMPT, file_label="SystemPrompt")
-
-        formatted_prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content=CONSTITUTION),
-            SystemMessage(content=SPECIFICATION),
-            SystemMessage(content=SYS_PROMPT),
-            ("human", """
-        Generate one company capability win theme using the following input.
-
-        Input JSON:
-        {llm_input}
-
-        Return JSON only.
-        """)
-        ])
 
         llm_input = {
             "company_id": state["company_id"],
@@ -66,29 +69,19 @@ def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
             ),
         }
 
-        parser = JsonOutputParser()
-        chain = formatted_prompt | llm 
+        llm_start = time.perf_counter()
 
-        raw_response = chain.invoke({
-            "llm_input": llm_input,
-        })
+        raw_response = CHAIN.invoke(
+            {
+                "llm_input": llm_input,
+            }
+        )
 
-        response = parser.invoke(raw_response)
+        print(
+            f"LLM Response Time: {time.perf_counter() - llm_start:.2f}s"
+        )
 
-        # Token Usage Logger
-        # usage = extract_token_usage(response)
-
-        # payload = {
-        #     "agent_name": "WinThemeGenerator",
-        #     "company_id": state["company_id"],
-        #     **usage,
-        # }
-
-        # Save the token
-        # try:
-        #     TokenUsageService.log_usage(payload)
-        # except Exception as log_error:
-        #     print("Error in inserting", log_error)     
+        response = PARSER.invoke(raw_response)
 
         print("\nLLM RESPONSE:")
         print(response)

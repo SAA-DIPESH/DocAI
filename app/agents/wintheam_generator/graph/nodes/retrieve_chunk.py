@@ -2,7 +2,7 @@ import time
 from typing import Dict, Any
 
 from app.agents.wintheam_generator.graph.agent_state import WinThemeState
-from app.agents.wintheam_generator.services.qdrant_service import CompanyRetriever
+from app.agents.wintheam_generator.services.qdrant_service import company_retriever
 
 
 def retrieve_evidence_node(state: WinThemeState) -> Dict[str, Any]:
@@ -39,12 +39,12 @@ def retrieve_evidence_node(state: WinThemeState) -> Dict[str, Any]:
                 },
             }
 
-        retriever = CompanyRetriever()
+    
 
-        retrieval_result = retriever.retrieve(
+        retrieval_result = company_retriever.retrieve(
             company_id=company_id,
             anchor_group=current_anchor_group,
-            top_k=5,
+            top_k=3,
             search_limit=10,
         )
 

@@ -1,15 +1,8 @@
 import time
 from typing import Any, Dict
-
-from app.agents.tender_requirement_agent.chains.detector_chain import (
-    detect_and_extract,
-)
-from app.agents.tender_requirement_agent.graph.agent_state import (
-    TenderRequirementState,
-)
-from app.agents.tender_requirement_agent.utils.helper import (
-    update_latency,
-)
+from app.agents.tender_requirement_agent.chains.detector_chain import detect_and_extract
+from app.agents.tender_requirement_agent.graph.agent_state import TenderRequirementState
+from app.agents.tender_requirement_agent.utils.helper import update_latency
 from app.infrastructure.token_usage_logger import TokenUsageService
 
 
@@ -21,9 +14,7 @@ DEFAULT_TOKEN_USAGE = {
 }
 
 
-async def detect_and_extract_requirements_node(
-    state: TenderRequirementState,
-) -> Dict[str, Any]:
+async def detect_and_extract_requirements_node(state: TenderRequirementState) -> Dict[str, Any]:
 
     start_time = time.perf_counter()
 

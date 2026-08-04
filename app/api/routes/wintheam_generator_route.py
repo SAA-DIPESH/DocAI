@@ -26,6 +26,14 @@ def generate_win_theme(request: WinThemeRequest):
 
     request_id = str(uuid.uuid4())
 
+    print("\n" + "=" * 100)
+    print("ENTERED /generate")
+    print(f"Request ID : {request_id}")
+    print(f"Company ID : {request.company_id}")
+    print(f"Industry   : {request.industry}")
+    print(f"CPV Code   : {request.cpv_code}")
+    print("=" * 100)
+
     tracking_token = logger.start(
         message="Win theme generation started",
         event_type="WinThemeGenerationStarted",
@@ -66,11 +74,19 @@ def generate_win_theme(request: WinThemeRequest):
 
     try:
 
+        print(f"[{request_id}] Invoking LangGraph...")
+
         start = time.perf_counter()
 
         result = win_theme_graph.invoke(initial_state)
 
         execution_time = round(time.perf_counter() - start, 2)
+
+        print(f"[{request_id}] LangGraph Completed")
+        print(f"[{request_id}] Execution Time: {execution_time}s")
+        print(f"[{request_id}] Status: {result.get('status')}")
+        print(f"[{request_id}] Current Step: {result.get('current_step')}")
+        print(f"[{request_id}] Themes Generated: {len(result.get('generated_themes', []))}")
 
         logger.end(
             tracking_token=tracking_token,
@@ -102,6 +118,8 @@ def generate_win_theme(request: WinThemeRequest):
         )
 
     except Exception as exc:
+
+        print(f"[{request_id}] ERROR: {str(exc)}")
 
         logger.end(
             tracking_token=tracking_token,

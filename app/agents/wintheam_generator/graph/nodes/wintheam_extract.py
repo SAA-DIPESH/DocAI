@@ -21,6 +21,11 @@ except Exception as e:
     
 
 def extract_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
+
+    print("\n" + "=" * 80)
+    print(">>> ENTER extract_win_theme_node")
+    print("=" * 80)
+
     start = time.perf_counter()
 
     payload = {
@@ -29,18 +34,25 @@ def extract_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
         "cpv_code": state["cpv_code"],
     }
 
+    print("Calling Extract API:", API_URL)
+    print("Payload:", payload)
+
     try:
         response = requests.post(
             API_URL,
             json=payload,
-            timeout=300,
         )
+
+        print("Extract API Status Code:", response.status_code)
+
         response.raise_for_status()
 
         response_data = response.json()
 
         extractor_response = response_data.get("response", {})
         raw_anchor_groups = extractor_response.get("anchor_groups", [])
+
+        print(f"Raw Anchor Groups: {len(raw_anchor_groups)}")
 
         anchor_groups = [
             {
@@ -53,6 +65,11 @@ def extract_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
             for index, anchor_group in enumerate(raw_anchor_groups)
         ]
 
+        print(f"Processed Anchor Groups: {len(anchor_groups)}")
+
+        if anchor_groups:
+            print("First Anchor:", anchor_groups[0])
+
         context = {
             "company_id": response_data.get("company_id", state["company_id"]),
             "cpv_code": response_data.get("cpv_code", state["cpv_code"]),
@@ -61,6 +78,10 @@ def extract_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
         }
 
         end = time.perf_counter()
+
+        print(f"Extract Node Time: {round(end - start, 2)}s")
+        print("<<< EXIT extract_win_theme_node")
+        print("=" * 80)
 
         return {
             "context": context,
@@ -86,7 +107,12 @@ def extract_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
         }
 
     except requests.exceptions.RequestException as e:
+
         end = time.perf_counter()
+
+        print("EXTRACT NODE ERROR:", str(e))
+        print("<<< EXIT extract_win_theme_node (FAILED)")
+        print("=" * 80)
 
         return {
             "context": {},
