@@ -94,6 +94,7 @@ Define a strict separation between client-visible proposal text and internal evi
     {
       "CriterionId": "",
       "CriterionName": "",
+      "WeightPercent":"" ,
       "Addressed": true,
       "HowAddressed": ""
     }

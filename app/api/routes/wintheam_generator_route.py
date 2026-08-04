@@ -1,5 +1,9 @@
 import time
 import uuid
+import logging
+import time
+import traceback
+import uuid
 
 from fastapi import APIRouter, HTTPException
 
@@ -137,5 +141,9 @@ def generate_win_theme(request: WinThemeRequest):
 
         raise HTTPException(
             status_code=500,
-            detail="Internal server error",
-        )
+            detail={
+                "message": str(exc),
+                "error_type": type(exc).__name__,
+                "request_id": request_id,
+            },
+        )from exc

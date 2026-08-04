@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.infrastructure.logger import Logging
 
@@ -105,6 +105,32 @@ async def generate_section_plan(request: SectionPlannerRequest) -> ProposalPlanR
             len(response.ProposalGroups),
         )
         return response
+    except SourceNotFoundError as exc:
+        event_logger.end(
+            tracking_token=tracking_token,
+            is_success=True,
+            message="Active source document was not found",
+            event_type="TenderSectionPlanningSkipped",
+            payload={**_request_payload(request), "reason": str(exc)},
+        )
+        terminal_logger.info(
+            "Section planning skipped | company_id=%s tender_id=%s project_id=%s reason=%s",
+            request.company_id,
+            request.tender_id,
+            request.project_id,
+            str(exc),
+        )
+        return JSONResponse(
+            status_code=200,
+            content={
+                "CompanyId": request.company_id,
+                "TenderId": request.tender_id,
+                "ProjectId": request.project_id,
+                "Status": "NotFound",
+                "Message": str(exc),
+                "JsonOutput": None,
+            },
+        )
     except Exception as exc:
         http_error = _http_error(exc)
         event_logger.end(
