@@ -43,9 +43,41 @@ def extract_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
 
         response_data = response.json()
 
-        extractor_response = response_data.get("response", {})
-        raw_anchor_groups = extractor_response.get("anchor_groups", [])
+        print("=" * 80)
+        print("Extractor API Response:")
+        print(response_data)
+        print("=" * 80)
 
+        extractor_response = response_data.get("response")
+
+        if extractor_response is None:
+            return {
+                "context": {},
+                "anchor_groups": [],
+                "current_anchor_index": 0,
+                "generated_themes": [],
+                "next_step": "end",
+                "status": "failed",
+                "validation_status": response_data.get(
+                    "validation_status",
+                    "failed",
+                ),
+                "current_step": "extract_win_theme",
+                "error": "Extractor returned no retrieval plan.",
+                "warnings": response_data.get(
+                    "validation_feedback",
+                    ["Extractor returned response=None"],
+                ),
+                "node_latencies": {
+                    **state.get("node_latencies", {}),
+                    "extract_win_theme": round(
+                        time.perf_counter() - start,
+                        3,
+                    ),
+                },
+            }
+
+        raw_anchor_groups = extractor_response.get("anchor_groups", [])
         anchor_groups = [
             {
                 "anchor_id": f"ANCHOR_{index + 1:03d}",

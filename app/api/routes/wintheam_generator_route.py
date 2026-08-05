@@ -118,11 +118,6 @@ def generate_win_theme(request: WinThemeRequest):
 
     except Exception as exc:
 
-        logger.exception(
-            message="Win theme generation failed.",
-            exception=exc,
-        )
-
         logger.end(
             tracking_token=tracking_token,
             is_success=False,
