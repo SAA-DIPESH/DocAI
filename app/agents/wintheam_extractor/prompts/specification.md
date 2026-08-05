@@ -20,10 +20,12 @@ The orchestration layer is responsible for:
 
 ```json
 {
-  "request_id": "{{request_id}}",
   "company_id": "{{company_id}}",
   "industry": "{{industry}}",
-  "cpv_code": "{{cpv_code}}"
+  "cpv_codes": [
+    "{{cpv_code_1}}",
+    "{{cpv_code_2}}"
+  ]
 }
 ```
 

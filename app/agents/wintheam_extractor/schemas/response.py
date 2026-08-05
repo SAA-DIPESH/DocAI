@@ -8,20 +8,17 @@ from pydantic import BaseModel, Field
 
 
 
-class WintheamExtractorResponse(BaseModel):
-    company_id: str
-    cpv_code: str
-
+class WinThemeExtractorResponse(BaseModel):
+    request_id: str
     status: str
-    current_step: str | None = None
 
-    response: dict[str, Any] | None = None
+    retrieval_blueprint: Optional[Dict[str, Any]] = None
 
-    validation_status: str | None = None
-    validation_feedback: list[str] = Field(default_factory=list)
+    validation_status: Optional[str] = None
+    validation_feedback: List[str] = Field(default_factory=list)
 
-    retry_count: int = 0
+    retry_count: int
 
-    error: str | None = None
+    error: Optional[str] = None
 
-    node_latencies: dict[str, float] = Field(default_factory=dict)
+    node_latencies: Dict[str, float] = Field(default_factory=dict)

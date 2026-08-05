@@ -10,7 +10,9 @@ from pydantic import BaseModel, Field
 # =============================================================
 # request/response schema for wintheam generator
 # =============================================================
+from typing import List
+
 class WinThemeRequest(BaseModel):
     company_id: str
     industry: str
-    cpv_code: str
+    cpv_codes: List[str]

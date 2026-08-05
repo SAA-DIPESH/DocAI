@@ -1,22 +1,37 @@
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, Literal
+from typing_extensions import TypedDict
 
-class WintheamState(TypedDict):
+
+class WinThemeExtractorState(TypedDict):
+    # Request
     request_id: str
     company_id: str
     industry: str
-    cpv_code: str
+    cpv_codes: List[str]
 
-    response: Optional[Dict[str, Any]]
+    # Output
+    retrieval_blueprint: Optional[Dict[str, Any]]
     raw_llm_response: Optional[str]
 
-    validation_status: Optional[str]
-    validation_feedback: Optional[List[str]]
+    # Validation
+    validation_errors: List[str]
+    validation_warnings: List[str]
 
+    # Retry
     retry_count: int
     max_retries: int
 
+    # Execution
     current_step: Optional[str]
-    status: Optional[str]
-    error: Optional[str]
+    status: Literal[
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "invalid_input"
+    ]
 
+    errors: List[str]
+
+    # Metrics
     node_latencies: Dict[str, float]

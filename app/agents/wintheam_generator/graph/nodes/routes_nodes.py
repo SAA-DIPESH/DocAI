@@ -1,11 +1,16 @@
 from typing import Literal
-from app.agents.wintheam_generator.graph.agent_state import WinThemeState
+
 from langgraph.graph import END
 
+from app.agents.wintheam_generator.graph.agent_state import WinThemeState
 
-def route_after_extract(state: WinThemeState):
+
+def route_after_extract(
+    state: WinThemeState,
+) -> Literal["select_current_anchor", END]:
     """
-    Stops the graph if extractor fails or returns no anchor groups.
+    Route after extracting the retrieval blueprint.
+    Stop if extraction failed or no anchor groups were produced.
     """
 
     if state.get("status") == "failed":
@@ -20,9 +25,12 @@ def route_after_extract(state: WinThemeState):
     return "select_current_anchor"
 
 
-def route_after_select_anchor(state: WinThemeState):
+def route_after_select_anchor(
+    state: WinThemeState,
+) -> Literal["retrieve_evidence", END]:
     """
-    Stops the graph if no current anchor group is available.
+    Route after selecting the current anchor group.
+    Stop if there are no more anchors to process.
     """
 
     if state.get("status") == "failed":
@@ -31,38 +39,39 @@ def route_after_select_anchor(state: WinThemeState):
     if state.get("next_step") == "end":
         return END
 
-    if not state.get("current_anchor_group"):
+    if state.get("current_anchor_group") is None:
         return END
 
     return "retrieve_evidence"
 
 
-def route_after_retrieve_evidence(state: WinThemeState):
+def route_after_retrieve_evidence(
+    state: WinThemeState,
+) -> Literal["win_theme_generator", "collect_win_theme"]:
     """
-    Sends the workflow to the LLM only when evidence exists.
-    Otherwise, collect an insufficient-evidence result and continue the loop.
+    Generate a win theme only when retrieval succeeds.
+    Otherwise collect the result and continue.
     """
 
-    retrieval_status = state.get("retrieval_status")
-
-    if retrieval_status == "success":
-        return "win_theme_generator"
-
-    if retrieval_status in ["no_evidence", "failed"]:
-        return "collect_win_theme"
-
-    return "collect_win_theme"
+    return (
+        "win_theme_generator"
+        if state.get("retrieval_status") == "success"
+        else "collect_win_theme"
+    )
 
 
-def route_after_collection(state: WinThemeState):
+def route_after_collection(
+    state: WinThemeState,
+) -> Literal["select_current_anchor", END]:
     """
-    Routes the workflow after collecting the current win theme.
+    Continue processing remaining anchor groups or end the workflow.
     """
 
     if state.get("status") == "failed":
         return END
 
-    if state.get("next_step") == "continue":
-        return "select_current_anchor"
-
-    return END
+    return (
+        "select_current_anchor"
+        if state.get("next_step") == "continue"
+        else END
+    )

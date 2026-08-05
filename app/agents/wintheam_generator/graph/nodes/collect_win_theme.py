@@ -1,15 +1,22 @@
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
-from app.agents.wintheam_generator.graph.agent_state import WinThemeState
+from app.agents.wintheam_generator.graph.agent_state import (
+    AnchorGroup,
+    WinTheme,
+    WinThemeState,
+)
 
 
 def _build_placeholder_theme(
-    anchor_group: Dict[str, Any],
+    anchor_group: AnchorGroup,
     status: str,
     warning: str,
-) -> Dict[str, Any]:
-    """Build a placeholder theme when no valid theme can be generated."""
+) -> WinTheme:
+    """
+    Build a placeholder win theme when generation cannot
+    produce a valid theme.
+    """
 
     return {
         "anchor_id": anchor_group.get("anchor_id"),
@@ -25,60 +32,94 @@ def _build_placeholder_theme(
     }
 
 
-def collect_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
+def collect_win_theme_node(
+    state: WinThemeState,
+) -> Dict[str, Any]:
     """
-    Collect the generated win theme (or a placeholder) for the current
-    anchor group, then advance to the next anchor group.
+    Collect the generated win theme (or placeholder)
+    and advance to the next anchor group.
     """
 
     start = time.perf_counter()
 
     try:
-        generated_themes = list(state.get("generated_themes", []))
 
-        current_anchor_group = state.get("current_anchor_group")
-        generated_theme = state.get("current_win_theme")
-        retrieval_status = state.get("retrieval_status")
-        anchor_groups = state.get("anchor_groups", [])
+        generated_themes = list(
+            state.get("generated_themes", [])
+        )
 
-        # Case 1: Theme generated successfully
+        current_anchor_group = state.get(
+            "current_anchor_group"
+        )
+
+        generated_theme = state.get(
+            "current_win_theme"
+        )
+
+        retrieval_status = state.get(
+            "retrieval_status"
+        )
+
+        anchor_groups = state.get(
+            "anchor_groups",
+            [],
+        )
+
         if generated_theme is not None:
-            generated_themes.append(generated_theme)
 
-        # Case 2: No supporting evidence found
-        elif retrieval_status == "no_evidence" and current_anchor_group:
+            generated_themes.append(
+                generated_theme
+            )
+
+        elif (
+            retrieval_status == "no_evidence"
+            and current_anchor_group
+        ):
+
             generated_themes.append(
                 _build_placeholder_theme(
-                    anchor_group=current_anchor_group,
-                    status="insufficient_evidence",
-                    warning="No evidence found for this anchor group.",
+                    current_anchor_group,
+                    "insufficient_evidence",
+                    "No evidence found for this anchor group.",
                 )
             )
 
-        # Case 3: Retrieval failed
-        elif retrieval_status == "failed" and current_anchor_group:
+        elif (
+            retrieval_status == "failed"
+            and current_anchor_group
+        ):
+
             generated_themes.append(
                 _build_placeholder_theme(
-                    anchor_group=current_anchor_group,
-                    status="failed",
-                    warning=state.get("error")
-                    or "Evidence retrieval failed for this anchor group.",
+                    current_anchor_group,
+                    "failed",
+                    state.get("error")
+                    or "Evidence retrieval failed.",
                 )
             )
 
-        # Case 4: Unexpected retrieval status
         elif current_anchor_group:
+
             generated_themes.append(
                 _build_placeholder_theme(
-                    anchor_group=current_anchor_group,
-                    status="failed",
-                    warning=f"Unexpected retrieval status: {retrieval_status}",
+                    current_anchor_group,
+                    "failed",
+                    f"Unexpected retrieval status: {retrieval_status}",
                 )
             )
 
-        next_index = state.get("current_anchor_index", 0) + 1
+        next_index = (
+            state.get(
+                "current_anchor_index",
+                0,
+            )
+            + 1
+        )
 
-        latency = round(time.perf_counter() - start, 3)
+        latency = round(
+            time.perf_counter() - start,
+            3,
+        )
 
         return {
             "generated_themes": generated_themes,
@@ -88,37 +129,55 @@ def collect_win_theme_node(state: WinThemeState) -> Dict[str, Any]:
                 if next_index < len(anchor_groups)
                 else "end"
             ),
-
-            # Reset loop state
             "current_anchor_group": None,
             "current_evidence": [],
             "current_win_theme": None,
             "retrieval_status": None,
-
+            "retrieved_chunks_count": 0,
+            "reranked_chunks_count": 0,
             "status": "success",
-            "validation_status": "passed",
+            "warnings": state.get(
+                "warnings",
+                [],
+            ),
+            "unsupported_claims_removed": state.get(
+                "unsupported_claims_removed",
+                [],
+            ),
             "current_step": "collect_win_theme",
             "error": None,
             "node_latencies": {
-                **state.get("node_latencies", {}),
+                **state.get(
+                    "node_latencies",
+                    {},
+                ),
                 "collect_win_theme": latency,
             },
         }
 
-    except Exception as e:
-        latency = round(time.perf_counter() - start, 3)
+    except Exception as exc:
+
+        latency = round(
+            time.perf_counter() - start,
+            3,
+        )
 
         return {
             "status": "failed",
-            "validation_status": "failed",
-            "warnings": [
-                *state.get("warnings", []),
-                str(e),
-            ],
             "current_step": "collect_win_theme",
-            "error": str(e),
+            "error": str(exc),
+            "warnings": [
+                *state.get(
+                    "warnings",
+                    [],
+                ),
+                str(exc),
+            ],
             "node_latencies": {
-                **state.get("node_latencies", {}),
+                **state.get(
+                    "node_latencies",
+                    {},
+                ),
                 "collect_win_theme": latency,
             },
         }

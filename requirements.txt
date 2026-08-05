@@ -44,3 +44,6 @@ pymongo
 pytest
 langgraph
 langchain-groq
+
+
+fastembed

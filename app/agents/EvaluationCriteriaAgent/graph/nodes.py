@@ -47,7 +47,7 @@ DEFAULT_CONSTITUTION_PATH = "app/agents/EvaluationCriteriaAgent/resources/consti
 DEFAULT_PROMPT_PATH = "app/agents/EvaluationCriteriaAgent/prompts/runtime_prompt.md"
 DEFAULT_RETRIEVAL_OUTPUT_PATH = "evaluation_evidence_debug.json"
 DEFAULT_FINAL_OUTPUT_PATH = "Evaluation_Evidence.json"
-DEFAULT_QDRANT_URL = "https://b18a6879-f119-47c1-8a5e-17af45713616.eu-west-2-0.aws.cloud.qdrant.io"
+#DEFAULT_QDRANT_URL = "https://b18a6879-f119-47c1-8a5e-17af45713616.eu-west-2-0.aws.cloud.qdrant.io"
 DEFAULT_QDRANT_COLLECTION = "CPTenderDoc"
 DEFAULT_DENSE_MODEL = "text-embedding-3-small"
 DEFAULT_OPENAI_MODEL = "gpt-4.1"
@@ -811,7 +811,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--qdrant-api-key", default=_ec_env("QDRANT_API_KEY") or None)
     parser.add_argument(
         "--qdrant-collection",
-        default=_ec_env("QDRANT_COLLECTION_NAME", DEFAULT_QDRANT_COLLECTION),
+        default=_ec_env("QDRANT_COLLECTION_NAME"),
     )
     parser.add_argument(
         "--dense-model-name",

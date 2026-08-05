@@ -36,7 +36,7 @@ Optional, only if your collection has a compatible sparse vector:
 
 Environment variables
 ---------------------
-    QDRANT_URL=http://localhost:6333
+   # QDRANT_URL=http://localhost:6333
     QDRANT_API_KEY=...                         # optional for local Qdrant
     QDRANT_COLLECTION=tender_chunks
     COMPANY_ID=6a202607915f3a8b0831fec6
@@ -1415,7 +1415,7 @@ def main() -> None:
         )
 
     client = QdrantClient(
-        url=_env_value("QDRANT_URL", "http://localhost:6333"),
+        url=_env_value("QDRANT_URL", ),
         api_key=_env_value("QDRANT_API_KEY") or None,
         timeout=_env_float("QDRANT_SEARCH_TIMEOUT", 60.0),
     )

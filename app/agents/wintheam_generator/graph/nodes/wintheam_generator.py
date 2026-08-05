@@ -5,7 +5,10 @@ from langchain_core.messages import SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-from app.agents.wintheam_generator.graph.agent_state import WinThemeState
+from app.agents.wintheam_generator.graph.agent_state import (
+    WinTheme,
+    WinThemeState,
+)
 from app.agents.wintheam_generator.prompts.prompt_loader import (
     CONSTITUTION,
     SPECIFICATION,
@@ -45,7 +48,9 @@ Return JSON only.
 )
 
 
-def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
+def win_theme_generator_node(
+    state: WinThemeState,
+) -> Dict[str, Any]:
     """
     Generate a single win theme for the current anchor group.
     """
@@ -58,29 +63,54 @@ def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
             "context": state["context"],
             "anchor_group": state["current_anchor_group"],
             "evidence": state.get("current_evidence", []),
-            "rules": state.get("rules", DEFAULT_RULES),
+            "rules": dict(
+                state.get("rules", DEFAULT_RULES)
+            ),
         }
 
         response = CHAIN.invoke(
-            {
-                "llm_input": llm_input,
-            }
+            {"llm_input": llm_input}
         )
 
-        latency = round(time.perf_counter() - start, 3)
+        if not isinstance(response, dict):
+            raise ValueError(
+                "LLM returned an invalid response."
+            )
+
+        current_win_theme: WinTheme = response
+
+        latency = round(
+            time.perf_counter() - start,
+            3,
+        )
 
         return {
-            "current_win_theme": response,
-            "status": response.get("status", "candidate"),
-            "validation_status": "passed",
-            "warnings": [
-                *state.get("warnings", []),
-                *response.get("validation", {}).get("warnings", []),
-            ],
-            "unsupported_claims_removed": response.get(
+            "current_win_theme": current_win_theme,
+            "status": "success",
+            "validation_status": response.get(
                 "validation",
                 {},
-            ).get("unsupported_claims_removed", []),
+            ).get(
+                "status",
+                "passed",
+            ),
+            "warnings": [
+                *state.get("warnings", []),
+                *response.get("validation", {}).get(
+                    "warnings",
+                    [],
+                ),
+            ],
+            "unsupported_claims_removed": [
+                *state.get(
+                    "unsupported_claims_removed",
+                    [],
+                ),
+                *response.get("validation", {}).get(
+                    "unsupported_claims_removed",
+                    [],
+                ),
+            ],
             "current_step": "win_theme_generator",
             "error": None,
             "node_latencies": {
@@ -89,8 +119,11 @@ def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
             },
         }
 
-    except Exception as e:
-        latency = round(time.perf_counter() - start, 3)
+    except Exception as exc:
+        latency = round(
+            time.perf_counter() - start,
+            3,
+        )
 
         return {
             "current_win_theme": None,
@@ -98,10 +131,10 @@ def win_theme_generator_node(state: WinThemeState) -> Dict[str, Any]:
             "validation_status": "failed",
             "warnings": [
                 *state.get("warnings", []),
-                str(e),
+                str(exc),
             ],
             "current_step": "win_theme_generator",
-            "error": str(e),
+            "error": str(exc),
             "node_latencies": {
                 **state.get("node_latencies", {}),
                 "win_theme_generator": latency,

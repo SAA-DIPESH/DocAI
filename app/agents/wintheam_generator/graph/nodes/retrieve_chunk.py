@@ -1,7 +1,10 @@
 import time
 from typing import Any, Dict
 
-from app.agents.wintheam_generator.graph.agent_state import WinThemeState
+from app.agents.wintheam_generator.graph.agent_state import (
+    AnchorGroup,
+    WinThemeState,
+)
 from app.agents.wintheam_generator.services.qdrant_service import (
     COMPANY_RETRIEVER,
 )
@@ -9,19 +12,16 @@ from app.agents.wintheam_generator.services.qdrant_service import (
 
 def retrieve_evidence_node(state: WinThemeState) -> Dict[str, Any]:
     """
-    Retrieve supporting evidence from Qdrant for the current anchor group.
-
-    Retrieval statuses:
-    - success: Evidence found.
-    - no_evidence: Retrieval succeeded but no evidence matched.
-    - failed: Retrieval could not be completed.
+    Retrieve supporting evidence for the current anchor group.
     """
 
     start = time.perf_counter()
 
     try:
         company_id = state["company_id"]
-        current_anchor_group = state.get("current_anchor_group")
+        current_anchor_group: AnchorGroup | None = state.get(
+            "current_anchor_group"
+        )
 
         if current_anchor_group is None:
             latency = round(time.perf_counter() - start, 3)
@@ -29,8 +29,9 @@ def retrieve_evidence_node(state: WinThemeState) -> Dict[str, Any]:
             return {
                 "current_evidence": [],
                 "retrieval_status": "failed",
+                "retrieved_chunks_count": 0,
+                "reranked_chunks_count": 0,
                 "status": "failed",
-                "validation_status": "failed",
                 "current_step": "retrieve_evidence",
                 "error": "No current anchor group selected.",
                 "warnings": [
@@ -50,25 +51,33 @@ def retrieve_evidence_node(state: WinThemeState) -> Dict[str, Any]:
             search_limit=10,
         )
 
-        current_evidence = retrieval_result.get("evidence", [])
+        print("=" * 80)
+        print(retrieval_result)
+        print("=" * 80)
+
+        current_evidence = retrieval_result.get(
+            "evidence",
+            [],
+        )
 
         latency = round(time.perf_counter() - start, 3)
 
         return {
             "current_evidence": current_evidence,
             "retrieval_status": (
-                "success" if current_evidence else "no_evidence"
-            ),
-            "status": (
                 "success"
                 if current_evidence
-                else "insufficient_evidence"
+                else "no_evidence"
             ),
-            "validation_status": (
-                "passed"
-                if current_evidence
-                else "failed"
+            "retrieved_chunks_count": retrieval_result.get(
+                "retrieved_count",
+                len(current_evidence),
             ),
+            "reranked_chunks_count": retrieval_result.get(
+                "reranked_count",
+                len(current_evidence),
+            ),
+            "status": "success",
             "current_step": "retrieve_evidence",
             "error": None,
             "node_latencies": {
@@ -77,20 +86,21 @@ def retrieve_evidence_node(state: WinThemeState) -> Dict[str, Any]:
             },
         }
 
-    except Exception as e:
+    except Exception as exc:
         latency = round(time.perf_counter() - start, 3)
 
         return {
             "current_evidence": [],
             "retrieval_status": "failed",
+            "retrieved_chunks_count": 0,
+            "reranked_chunks_count": 0,
             "status": "failed",
-            "validation_status": "failed",
+            "current_step": "retrieve_evidence",
+            "error": str(exc),
             "warnings": [
                 *state.get("warnings", []),
-                str(e),
+                str(exc),
             ],
-            "current_step": "retrieve_evidence",
-            "error": str(e),
             "node_latencies": {
                 **state.get("node_latencies", {}),
                 "retrieve_evidence": latency,

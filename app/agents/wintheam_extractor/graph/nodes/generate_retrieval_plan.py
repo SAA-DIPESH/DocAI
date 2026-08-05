@@ -1,150 +1,65 @@
-from typing import Dict, Any
-from app.agents.wintheam_extractor.graph.agent_state import WintheamState
+# app/agents/wintheam_extractor/graph/nodes/generate_retrieval_plan.py
+
+import json
 import time
-from pathlib import Path
-from app.utils.helpers import read_markdown_file
-from langchain_core.messages import SystemMessage
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from app.infrastructure.load_llms import create_llm
-from app.agents.wintheam_extractor.graph.chains.extract_chain import LLM_CHAIN
-# from app.utils.token_usage_logger import extract_token_usage, TokenUsageService
+from typing import Any, Dict
 
-# Load LLM
-# llm = create_llm()
-
-# # CONSTITUTION_PATH & SPECIFICATION_PATH files
-# CONSTITUTION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_extractor\input_files\constitution.md")
-
-# SPECIFICATION_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_extractor\input_files\specification.md")
-
-# SYSTEM_PROMPT_PATH = Path(r"C:\Users\Dipesh Dhote\Desktop\Deployment\DocAI\app\agents\wintheam_extractor\input_files\system_prompt.md")
-
-# CONSTITUTION = read_markdown_file(CONSTITUTION_PATH, "Constitution")
-
-# SPECIFICATION = read_markdown_file(CONSTITUTION_PATH, "Specification")
-
-# SYSTEM_PROMPT = read_markdown_file(SYSTEM_PROMPT_PATH, "System Prompt")
+from app.agents.wintheam_extractor.graph.chains.extract_chain import (
+    RETRIEVAL_PLAN_CHAIN,
+)
+from app.agents.wintheam_extractor.graph.agent_state import WinThemeExtractorState
 
 
+def generate_retrieval_plan_node(state: WinThemeExtractorState) -> Dict[str, Any]:
+    """
+    Generate an evidence retrieval blueprint using the LLM.
+    """
 
-# FULL_SYSTEM_PROMPT = f"""
-# {SYSTEM_PROMPT}
-
-# ==================================================
-# CONSTITUTION
-# ==================================================
-
-# {CONSTITUTION}
-
-# ==================================================
-# SPECIFICATION
-# ==================================================
-
-# {SPECIFICATION}
-# """
-
-# PROMPT = ChatPromptTemplate.from_messages(
-#     [
-#         SystemMessage(content=FULL_SYSTEM_PROMPT),
-#         (
-#             "human",
-#             """
-# Company ID:
-# {company_id}
-
-# Industry:
-# {industry}
-
-# CPV Code:
-# {cpv_code}
-
-# {validation_feedback}
-# """.strip(),
-#         ),
-#     ]
-# )
-
-# # CHAIN = PROMPT | llm | JsonOutputParser()
-
-# LLM_CHAIN = PROMPT | llm
-# OUTPUT_PARSER = JsonOutputParser()
-
-
-def generate_retrieval_plan_node(state: WintheamState) -> Dict[str, Any]:
-
-    start = time.perf_counter()
+    start_time = time.perf_counter()
 
     try:
-
-        validation_feedback = state.get("validation_feedback") or []
-
-        if validation_feedback:
-            feedback_text = (
-                "Previous Validation Feedback:\n"
-                + "\n".join(f"- {item}" for item in validation_feedback)
-            )
-        else:
-            feedback_text = ""
-
-        llm_response  = LLM_CHAIN.invoke(
+        response = RETRIEVAL_PLAN_CHAIN.invoke(
             {
                 "company_id": state["company_id"],
                 "industry": state["industry"],
-                "cpv_code": state["cpv_code"],
-                "validation_feedback": feedback_text,
+                "cpv_codes": json.dumps(
+                    state["cpv_codes"],
+                    indent=2,
+                ),
+                "validation_feedback": "\n".join(
+                    state.get("validation_errors", [])
+                ),
             }
         )
 
-        
-        # # Token Usage Logger
-        # usage = extract_token_usage(raw_llm_response)
+        latency = time.perf_counter() - start_time
 
-        # payload = {
-        #     "agent_name": "WinThemeExtractor",
-        #     "company_id": state["company_id"],
-        #     **usage,
-        # }
-
-        # # Save the token
-        # try:
-        #     TokenUsageService.log_usage(payload)
-        # except Exception as log_error:
-        #     print("Error in inserting log for ", log_error)
-
-        anchor_groups = llm_response["anchor_groups"]
-
-        if not isinstance(anchor_groups, list):
-            raise ValueError("'anchor_groups' must be a list.")
-
-        if len(anchor_groups) == 0:
-            raise ValueError("'anchor_groups' cannot be empty.")
-
-        end = time.perf_counter()
+        node_latencies = dict(state.get("node_latencies", {}))
+        node_latencies["generate_retrieval_plan"] = latency
 
         return {
-            "response": llm_response,
-            "status": "success",
+            "retrieval_blueprint": response,
+            "raw_llm_response": json.dumps(
+                response,
+                indent=2,
+                ensure_ascii=False,
+            ),
+            "status": "processing",
             "current_step": "generate_retrieval_plan",
             "error": None,
-            "node_latencies": {
-                **state.get("node_latencies", {}),
-                "generate_retrieval_plan": round(end - start, 3),
-            },
+            "node_latencies": node_latencies,
         }
 
-    except Exception as e:
+    except Exception as exc:
 
-        end = time.perf_counter()
+        latency = time.perf_counter() - start_time
+
+        node_latencies = dict(state.get("node_latencies", {}))
+        node_latencies["generate_retrieval_plan"] = latency
 
         return {
-            "response": None,
             "status": "failed",
-            "current_step": "generate_retrieval_plan_failed",
-            "error": str(e),
-            "validation_feedback": [str(e)],
-            "node_latencies": {
-                **state.get("node_latencies", {}),
-                "generate_retrieval_plan": round(end - start, 3),
-            },
+            "current_step": "generate_retrieval_plan",
+            "error": str(exc),
+            "node_latencies": node_latencies,
         }

@@ -1,67 +1,65 @@
-from typing import Dict, Any
-from app.agents.wintheam_extractor.graph.agent_state import WintheamState
+# app/agents/wintheam_extractor/graph/nodes/validate_output.py
+
+import json
 import time
-from app.utils.helpers import read_markdown_file
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-# from app.infrastructure.load_llms import llm
-
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from typing import Any, Dict
 from app.agents.wintheam_extractor.graph.chains.validator_chain import VALIDATION_CHAIN
-from app.infrastructure.load_llms import create_llm
+from app.agents.wintheam_extractor.graph.agent_state import WinThemeExtractorState
 
 
+def validate_output_node(state: WinThemeExtractorState) -> Dict[str, Any]:
+    """
+    Validate the generated retrieval blueprint.
+    """
 
-def validate_output_node(state: WintheamState):
-
-    start = time.perf_counter()
+    start_time = time.perf_counter()
 
     try:
-
-        validation = VALIDATION_CHAIN.invoke(
+        validation_result = VALIDATION_CHAIN.invoke(
             {
-                "response": state["response"]
+                "retrieval_blueprint": json.dumps(
+                    state["retrieval_blueprint"],
+                    indent=2,
+                    ensure_ascii=False,
+                )
             }
         )
 
+        print("=" * 80)
+        print("VALIDATION RESULT")
+        print(validation_result)
+        print("=" * 80)
 
-        status = validation.get("validation_status", "failed")
+        latency = time.perf_counter() - start_time
 
-        feedback = validation.get("feedback", [])
-
-        score = validation.get("score", 0)
-
-      
-        end = time.perf_counter()
+        node_latencies = dict(state.get("node_latencies", {}))
+        node_latencies["validate_output"] = latency
 
         return {
-            "validation_status": status,
-            "validation_feedback": feedback,
-            "validation_score": score,
+            "validation_status": validation_result.get(
+                "validation_status",
+                "failed",
+            ),
+            "validation_feedback": validation_result.get(
+                "feedback",
+                [],
+            ),
             "current_step": "validate_output",
-            "status": "success",
-            "error": None,
-            "node_latencies": {
-                **state.get("node_latencies", {}),
-                "validate_output": round(end - start, 3),
-            },
+            "node_latencies": node_latencies,
         }
+    except Exception as exc:
 
-    except Exception as e:
+        latency = time.perf_counter() - start_time
 
-
-        end = time.perf_counter()
+        node_latencies = dict(state.get("node_latencies", {}))
+        node_latencies["validate_output"] = latency
 
         return {
             "validation_status": "failed",
-            "validation_feedback": [str(e)],
-            "validation_score": 0,
-            "status": "failed",
-            "current_step": "validate_output_failed",
-            "error": str(e),
-            "node_latencies": {
-                **state.get("node_latencies", {}),
-                "validate_output": round(end - start, 3),
-            },
+            "validation_feedback": [
+                f"Validator exception: {str(exc)}"
+            ],
+            "current_step": "validate_output",
+            "error": str(exc),
+            "node_latencies": node_latencies,
         }

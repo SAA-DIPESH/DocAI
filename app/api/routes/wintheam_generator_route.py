@@ -24,43 +24,86 @@ def build_initial_state(
     request: WinThemeRequest,
     request_id: str,
 ) -> dict:
-    """Create the initial graph state."""
+    """
+    Create the initial graph state.
+    """
 
     return {
+        # ======================================================
+        # Request
+        # ======================================================
+
         "request_id": request_id,
         "company_id": request.company_id,
         "industry": request.industry,
-        "cpv_code": request.cpv_code,
+        "cpv_codes": request.cpv_codes,
+
+        # ======================================================
+        # Rules
+        # ======================================================
 
         "rules": {},
 
+        # ======================================================
+        # Retrieval Blueprint
+        # ======================================================
+
         "context": {},
         "anchor_groups": [],
+
+        # ======================================================
+        # Anchor Processing
+        # ======================================================
 
         "current_anchor_index": 0,
         "current_anchor_group": None,
         "next_step": "continue",
 
+        # ======================================================
+        # Evidence
+        # ======================================================
+
         "current_evidence": [],
         "current_win_theme": None,
         "retrieval_status": None,
 
+        # ======================================================
+        # Output
+        # ======================================================
+
         "generated_themes": [],
+
+        # ======================================================
+        # Validation
+        # ======================================================
 
         "validation_status": None,
         "warnings": [],
         "unsupported_claims_removed": [],
 
+        # ======================================================
+        # Execution
+        # ======================================================
+
         "status": "pending",
         "current_step": None,
         "error": None,
+
+        # ======================================================
+        # Metrics
+        # ======================================================
 
         "node_latencies": {},
     }
 
 
-@router.post("/generate", response_model=WinThemeResponse)
-def generate_win_theme(request: WinThemeRequest):
+@router.post(
+    "/generate",
+    response_model=WinThemeResponse,
+)
+def generate_win_theme(
+    request: WinThemeRequest,
+):
 
     request_id = str(uuid.uuid4())
 
@@ -71,10 +114,14 @@ def generate_win_theme(request: WinThemeRequest):
     )
 
     try:
+
         start = time.perf_counter()
 
         result = win_theme_graph.invoke(
-            build_initial_state(request, request_id)
+            build_initial_state(
+                request,
+                request_id,
+            )
         )
 
         execution_time = round(
@@ -91,12 +138,15 @@ def generate_win_theme(request: WinThemeRequest):
                 "request_id": request_id,
                 "company_id": request.company_id,
                 "industry": request.industry,
-                "cpv_code": request.cpv_code,
+                "cpv_codes": request.cpv_codes,
                 "status": result.get("status"),
                 "current_step": result.get("current_step"),
                 "validation_status": result.get("validation_status"),
                 "generated_themes_count": len(
-                    result.get("generated_themes", [])
+                    result.get(
+                        "generated_themes",
+                        [],
+                    )
                 ),
                 "execution_time_seconds": execution_time,
                 "node_latencies": result.get(
@@ -107,16 +157,40 @@ def generate_win_theme(request: WinThemeRequest):
         )
 
         return WinThemeResponse(
-            status=result.get("status", "failed"),
-            current_step=result.get("current_step"),
-            validation_status=result.get("validation_status"),
-            warnings=result.get("warnings", []),
-            error=result.get("error"),
-            generated_themes=result.get("generated_themes", []),
-            node_latencies=result.get("node_latencies", {}),
+            status=result.get(
+                "status",
+                "failed",
+            ),
+            current_step=result.get(
+                "current_step",
+            ),
+            validation_status=result.get(
+                "validation_status",
+            ),
+            warnings=result.get(
+                "warnings",
+                [],
+            ),
+            error=result.get(
+                "error",
+            ),
+            generated_themes=result.get(
+                "generated_themes",
+                [],
+            ),
+            node_latencies=result.get(
+                "node_latencies",
+                {},
+            ),
         )
 
     except Exception as exc:
+
+        print("=" * 80)
+        print("WIN THEME GENERATOR EXCEPTION")
+        print(type(exc).__name__)
+        print(str(exc))
+        print("=" * 80)
 
         logger.end(
             tracking_token=tracking_token,
@@ -127,7 +201,7 @@ def generate_win_theme(request: WinThemeRequest):
                 "request_id": request_id,
                 "company_id": request.company_id,
                 "industry": request.industry,
-                "cpv_code": request.cpv_code,
+                "cpv_codes": request.cpv_codes,
                 "error": str(exc),
             },
         )

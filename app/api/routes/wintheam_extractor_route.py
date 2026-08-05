@@ -1,28 +1,21 @@
 import time
 import uuid
-
 from fastapi import APIRouter, HTTPException
-
 from app.agents.wintheam_extractor.graph.workflow import wintheam_extractor_graph
-from app.agents.wintheam_extractor.schemas.request import WintheamExtractorRequest
-from app.agents.wintheam_extractor.schemas.response import WintheamExtractorResponse
+from app.agents.wintheam_extractor.schemas.request import WinThemeExtractorRequest
+from app.agents.wintheam_extractor.schemas.response import WinThemeExtractorResponse
 from app.infrastructure.logger import Logging
 
 
-router = APIRouter(
-    prefix="/api/v1/agents/wintheam",
-    tags=["Win Theme Extractor"],
-)
+router = APIRouter(prefix="/api/v1/agents/wintheam",tags=["Win Theme Extractor"])
+
+logger = Logging(agent_name="extract_wintheam",source_module="api_route")
+
+MAX_RETRIES = 2
 
 
-logger = Logging(
-    agent_name="extract_wintheam",
-    source_module="api_route",
-)
-
-
-@router.post("/extract", response_model=WintheamExtractorResponse)
-def generate_wintheam_retrieval_plan(request: WintheamExtractorRequest):
+@router.post("/extract",response_model=WinThemeExtractorResponse,)
+def generate_wintheam_retrieval_plan(request: WinThemeExtractorRequest):
 
     request_id = str(uuid.uuid4())
 
@@ -33,24 +26,30 @@ def generate_wintheam_retrieval_plan(request: WintheamExtractorRequest):
     )
 
     initial_state = {
+        # Request
         "request_id": request_id,
         "company_id": request.company_id,
         "industry": request.industry,
-        "cpv_code": request.cpv_code,
+        "cpv_codes": request.cpv_codes,
 
-        "response": None,
+        # Generation
+        "retrieval_blueprint": None,
         "raw_llm_response": None,
 
+        # Validation
         "validation_status": None,
         "validation_feedback": [],
 
+        # Retry
         "retry_count": 0,
-        "max_retries": 1,
+        "max_retries": MAX_RETRIES,
 
+        # Execution
         "status": "pending",
         "current_step": None,
         "error": None,
 
+        # Metrics
         "node_latencies": {},
     }
 
@@ -60,7 +59,20 @@ def generate_wintheam_retrieval_plan(request: WintheamExtractorRequest):
 
         result = wintheam_extractor_graph.invoke(initial_state)
 
-        execution_time = round(time.perf_counter() - start, 2)
+        execution_time = round(
+            time.perf_counter() - start,
+            2,
+        )
+
+        anchor_group_count = len(
+            result.get(
+                "retrieval_blueprint",
+                {},
+            ).get(
+                "anchor_groups",
+                [],
+            )
+        )
 
         logger.end(
             tracking_token=tracking_token,
@@ -71,27 +83,51 @@ def generate_wintheam_retrieval_plan(request: WintheamExtractorRequest):
                 "request_id": request_id,
                 "company_id": request.company_id,
                 "industry": request.industry,
-                "cpv_code": request.cpv_code,
+                "cpv_codes": request.cpv_codes,
                 "status": result.get("status"),
                 "current_step": result.get("current_step"),
                 "validation_status": result.get("validation_status"),
-                "generated_themes_count": len(result.get("generated_themes", [])),
+                "anchor_group_count": anchor_group_count,
                 "execution_time_seconds": execution_time,
-                "node_latencies": result.get("node_latencies", {}),
+                "node_latencies": result.get(
+                    "node_latencies",
+                    {},
+                ),
             },
         )
 
-        return WintheamExtractorResponse(
+        return WinThemeExtractorResponse(
+            request_id=request_id,
             company_id=request.company_id,
-            cpv_code=request.cpv_code,
+            industry=request.industry,
+            cpv_codes=request.cpv_codes,
+
             status=result.get("status", "failed"),
             current_step=result.get("current_step"),
-            response=result.get("response"),
-            validation_status=result.get("validation_status"),
-            validation_feedback=result.get("validation_feedback", []),
-            retry_count=result.get("retry_count", 0),
+
+            retrieval_blueprint=result.get(
+                "retrieval_blueprint"
+            ),
+
+            validation_status=result.get(
+                "validation_status"
+            ),
+            validation_feedback=result.get(
+                "validation_feedback",
+                [],
+            ),
+
+            retry_count=result.get(
+                "retry_count",
+                0,
+            ),
+
             error=result.get("error"),
-            node_latencies=result.get("node_latencies", {}),
+
+            node_latencies=result.get(
+                "node_latencies",
+                {},
+            ),
         )
 
     except Exception as exc:
@@ -105,7 +141,7 @@ def generate_wintheam_retrieval_plan(request: WintheamExtractorRequest):
                 "request_id": request_id,
                 "company_id": request.company_id,
                 "industry": request.industry,
-                "cpv_code": request.cpv_code,
+                "cpv_codes": request.cpv_codes,
                 "error": str(exc),
             },
         )

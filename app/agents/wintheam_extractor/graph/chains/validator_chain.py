@@ -1,26 +1,36 @@
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+
 from app.infrastructure.load_llms import create_llm
-from app.agents.wintheam_extractor.prompts.prompt_loader import VALIDATION_SYSTEM_PROMPT
-from langchain_core.messages import SystemMessage
+from app.agents.wintheam_extractor.prompts.prompt_loader import (
+    VALIDATION_SYSTEM_PROMPT,
+)
 
-
-# Load LLM
 llm = create_llm()
 
-
-VALIDATION_PROMPT = ChatPromptTemplate.from_messages(
+RETRIEVAL_PLAN_VALIDATION_PROMPT = ChatPromptTemplate.from_messages(
     [
-        ("system", VALIDATION_SYSTEM_PROMPT),
+        (
+            "system",
+            VALIDATION_SYSTEM_PROMPT,
+        ),
         (
             "human",
             """
-Validate the following retrieval plan.
+Validate the retrieval blueprint below against the validation rules.
 
-{response}
-""",
+Return only the required JSON response.
+
+Retrieval Blueprint:
+
+{retrieval_blueprint}
+            """.strip(),
         ),
     ]
 )
 
-VALIDATION_CHAIN = VALIDATION_PROMPT| llm | JsonOutputParser()
+VALIDATION_CHAIN = (
+    RETRIEVAL_PLAN_VALIDATION_PROMPT
+    | llm
+    | JsonOutputParser()
+)
