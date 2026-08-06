@@ -1,9 +1,14 @@
+import json
 from pathlib import Path
+from typing import List
 
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.infrastructure.load_llms import create_llm
+from app.agents.tender_requirement_agent.graph.agent_state import (
+    ChunkState,
+)
 from app.agents.tender_requirement_agent.utils.helper import read_markdown_file
 
 # ==========================================================
@@ -55,11 +60,9 @@ DETECTOR_PROMPT = ChatPromptTemplate.from_messages(
         (
             "human",
             """
-Tender Document Chunk
+Analyze the following tender document chunks independently.
 
-{chunk_text}
-
-Return ONLY valid JSON.
+{chunks}
 """,
         ),
     ]
@@ -77,15 +80,34 @@ PARSER = JsonOutputParser()
 # Wrapper
 # ==========================================================
 
-async def detect_and_extract(
-    chunk_text: str,
+async def detect_and_extract_batch(
+    chunks: List[ChunkState],
 ):
+    """
+    Detect and extract requirements for multiple chunks
+    using a single LLM call.
+    """
+
+    payload = {
+        "chunks": [
+            {
+                "chunk_id": chunk["chunk_id"],
+                "text": chunk["chunk_text"],
+            }
+            for chunk in chunks
+        ]
+    }
+
     raw_response = await LLM_CHAIN.ainvoke(
         {
             "system_prompt": DETECTOR_SYSTEM_PROMPT,
             "constitution": DETECTOR_CONSTITUTION,
             "specification": DETECTOR_SPECIFICATION,
-            "chunk_text": chunk_text,
+            "chunks": json.dumps(
+                payload,
+                ensure_ascii=False,
+                indent=2,
+            ),
         }
     )
 

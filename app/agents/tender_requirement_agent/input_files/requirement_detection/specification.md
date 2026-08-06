@@ -1,231 +1,59 @@
-# Requirement Detection & Extraction Specification
+# Task
 
-## Objective
+You will receive multiple tender document chunks.
 
-Analyze a tender document chunk and identify every explicit supplier requirement.
+Analyze every chunk independently.
 
-If no supplier requirement exists, return an empty list.
+A supplier requirement is any statement requiring the supplier, bidder, contractor, consultant, or service provider to provide, perform, submit, maintain, comply with, demonstrate, or deliver something.
 
-Each extracted requirement must be represented as a structured object with classification metadata.
+For every detected requirement return:
 
----
+- RequirementText
+- RequirementType
+- RequirementStrength
+- MandatoryFlag
+- Priority
+- Confidence
+- CapabilityIntent
+- EvidenceSections
+- SemanticAnchors
+- IntentConfidence
 
-## What is a Requirement?
+Rules
 
-A requirement is any statement that specifies something the supplier, bidder, contractor, vendor, or service provider is expected, required, requested, or instructed to provide, perform, demonstrate, submit, comply with, maintain, or deliver.
+- Do not merge independent requirements.
+- Preserve the original meaning.
+- MandatoryFlag must be true when RequirementStrength is Mandatory.
+- Confidence values must be between 0.00 and 1.00.
+- Semantic Anchors should contain only explicit or clearly implied business concepts.
+- Use only predefined taxonomy values.
 
-Requirements may be:
+Output format
 
-- Mandatory
-- Optional
-- Conditional
-- Informational
-
----
-
-## Extract Requirements
-
-Extract each requirement as an independent requirement.
-
-Do NOT merge multiple requirements into one.
-
-For example:
-
-Supplier shall:
-
-- maintain ISO27001 certification
-- provide 24x7 support
-- appoint a dedicated project manager
-
-must produce three separate requirements.
-
----
-
-## Requirement Fields
-
-For every requirement return:
-
-### RequirementText
-
-The exact supplier requirement.
-
-Do not rewrite unless required to remove unnecessary surrounding context.
-
----
-
-### RequirementType
-
-Choose the most appropriate category.
-
-Allowed values include:
-
-- Certification
-- Compliance
-- Security
-- Technical Capability
-- Functional Requirement
-- Non-Functional Requirement
-- Staffing
-- Experience
-- Financial
-- Commercial
-- Pricing
-- Insurance
-- Legal
-- Governance
-- Reporting
-- Documentation
-- Deliverable
-- Timeline
-- Support
-- Training
-- Service Level
-- Submission
-- Selection Criteria
-- Evaluation Criteria
-- Contract
-- Environmental
-- Sustainability
-- Health & Safety
-- Data Protection
-- Other
-
----
-
-### RequirementStrength
-
-Choose exactly one:
-
-- Mandatory
-- Conditional
-- Optional
-- Informational
-
-Examples
-
-Mandatory
-
-- shall
-- must
-- required
-- mandatory
-- will be rejected
-
-Conditional
-
-- if applicable
-- where required
-- if selected
-
-Optional
-
-- may
-- can
-- optional
-- preferred
-
-Informational
-
-Statements that provide context but do not require supplier action.
-
----
-
-### MandatoryFlag
-
-Return:
-
-true
-
-or
-
-false
-
-MandatoryFlag should be true whenever RequirementStrength is Mandatory.
-
----
-
-### Priority
-
-Choose:
-
-- High
-- Medium
-- Low
-
-Examples
-
-High
-
-- legal
-- compliance
-- security
-- mandatory submission
-- eligibility
-- contract award
-- pass/fail
-
-Medium
-
-- technical capability
-- staffing
-- delivery
-- methodology
-
-Low
-
-- recommendations
-- best practice
-- optional information
-
----
-
-### Confidence
-
-Return a decimal number between
-
-0.00
-
-and
-
-1.00
-
-representing confidence in the extraction.
-
----
-
-## Output Rules
-
-Return ONLY valid JSON.
-
-Never return markdown.
-
-Never explain your reasoning.
-
----
-
-## Output Schema
-
-```json
 {
-  "detection_result": true,
-  "requirements": [
+  "chunks": [
     {
-      "RequirementText": "",
-      "RequirementType": "",
-      "RequirementStrength": "",
-      "MandatoryFlag": true,
-      "Priority": "",
-      "Confidence": 0.98
+      "chunk_id": "chunk_001",
+      "detection_result": true,
+      "requirements": [
+        {
+          "RequirementText": "",
+          "RequirementType": "",
+          "RequirementStrength": "",
+          "MandatoryFlag": true,
+          "Priority": "",
+          "Confidence": 0.98,
+          "CapabilityIntent": [],
+          "EvidenceSections": [],
+          "SemanticAnchors": [],
+          "IntentConfidence": 0.95
+        }
+      ]
+    },
+    {
+      "chunk_id": "chunk_002",
+      "detection_result": false,
+      "requirements": []
     }
   ]
 }
-```
-
-If no requirements are detected
-
-```json
-{
-  "detection_result": false,
-  "requirements": []
-}
-```

@@ -1,16 +1,45 @@
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Dict, List, Literal, Optional, TypedDict
 
+
+# =========================================================
+# Requirement
+# =========================================================
 
 class Requirement(TypedDict, total=False):
-    requirement_id: str
-    requirement_text: str
-    intent: str
-    intent_reason: str
-    evidence_section: Optional[str]
-    status: Literal["pending", "completed", "failed"]
-    error: Optional[str]
+    # Requirement Identification
+    RequirementId: str
+
+    # Requirement Extraction
+    RequirementText: str
+    RequirementType: str
+
+    RequirementStrength: Literal[
+        "Mandatory",
+        "Conditional",
+        "Optional",
+        "Informational",
+    ]
+
+    MandatoryFlag: bool
+
+    Priority: Literal[
+        "High",
+        "Medium",
+        "Low",
+    ]
+
+    Confidence: float
+
+    # Intent Mapping
+    CapabilityIntent: List[str]
+    EvidenceSections: List[str]
+    SemanticAnchors: List[str]
+    IntentConfidence: float
 
 
+# =========================================================
+# Token Usage
+# =========================================================
 
 class ModelTokenUsage(TypedDict):
     input_tokens: int
@@ -24,58 +53,48 @@ class TokenUsage(TypedDict):
     total_tokens: int
     models: Dict[str, ModelTokenUsage]
 
-class TenderRequirementState(TypedDict, total=False):
-    # =========================================================
-    # Tender Metadata
-    # =========================================================
-    tender_id: str
-    company_id: str
-    user_id: str
-    user_name: str
-    status: str
+
+# =========================================================
+# Batch Input (NEW)
+# =========================================================
+
+class ChunkState(TypedDict, total=False):
     document_id: str
     chunk_id: str
     source_document: str
     page_number: Optional[int]
     heading: Optional[str]
 
-    # =========================================================
-    # Chunk Data
-    # =========================================================
     chunk_text: str
 
-    # Filteration
     should_process: bool
     filter_score: int
-    matched_keywords: List[str]
     filter_reason: str
-    filter_confidence: Literal[
-        "HIGH",
-        "MEDIUM",
-        "LOW"
-    ]
+    filter_confidence: Literal["HIGH", "MEDIUM", "LOW"]
 
-    # =========================================================
-    # Master Data
-    # =========================================================
-    capability_intent_taxonomy: List[Dict[str, Any]]
-    company_evidence_sections: List[Dict[str, Any]]
-
-    # =========================================================
-    # Requirement Detection
-    # =========================================================
-    detection_result: int
+    detection_result: bool
     requirements: List[Requirement]
 
-    # =========================================================
-    # Processing Result
-    # =========================================================
     saved_requirement_ids: List[str]
     failed_requirement_ids: List[str]
 
-    # =========================================================
-    # Workflow Status
-    # =========================================================
+    error: Optional[str]
+
+
+# =========================================================
+# Agent State
+# =========================================================
+
+class TenderRequirementBatchState(TypedDict, total=False):
+
+    tender_id: str
+    company_id: str
+    user_id: str
+    user_name: str
+    status: str
+
+    chunks: List[ChunkState]
+
     workflow_status: Literal[
         "pending",
         "processing",
@@ -84,19 +103,11 @@ class TenderRequirementState(TypedDict, total=False):
     ]
 
     current_step: str
-    next_step: str
 
-
-    # Token Usage
     token_usage: TokenUsage
 
-    # =========================================================
-    # Error Handling
-    # =========================================================
-    error: Optional[str]
-
-    # =========================================================
-    # Performance
-    # =========================================================
     node_latencies: Dict[str, float]
+
     total_processing_time: float
+
+    error: Optional[str]
