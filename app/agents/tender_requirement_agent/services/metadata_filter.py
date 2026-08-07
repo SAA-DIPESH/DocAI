@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from app.agents.tender_requirement_agent.graph.agent_state import (
-    TenderRequirementState,
+    ChunkState,
 )
 
 # =====================================================
@@ -38,20 +38,21 @@ POSITIVE_TITLES = {
 
 
 def metadata_filter(
-    state: TenderRequirementState,
+    chunk: ChunkState,
 ) -> Tuple[int, str]:
     """
-    Calculates metadata score.
+    Calculates metadata score for a single chunk.
 
     Returns:
-        score
-        reason
+        (score, reason)
     """
 
     score = 0
     reasons = []
 
-    title = (state.get("heading") or "").strip().lower()
+    title = (
+        chunk.get("heading") or ""
+    ).strip().lower()
 
     # ---------------------------------------
     # Negative Rules
@@ -59,7 +60,9 @@ def metadata_filter(
 
     if title in SKIP_TITLES:
         score -= 10
-        reasons.append(f"Skip title='{title}'")
+        reasons.append(
+            f"Skip title='{title}'"
+        )
 
     # ---------------------------------------
     # Positive Rules
@@ -68,10 +71,14 @@ def metadata_filter(
     for keyword in POSITIVE_TITLES:
         if keyword in title:
             score += 5
-            reasons.append(f"Heading='{title}'")
+            reasons.append(
+                f"Heading='{title}'"
+            )
             break
 
     if not reasons:
-        reasons.append("No metadata indicators")
+        reasons.append(
+            "No metadata indicators"
+        )
 
     return score, " | ".join(reasons)

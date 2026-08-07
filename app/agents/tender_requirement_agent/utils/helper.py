@@ -3,7 +3,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterator, List
 
-from app.agents.tender_requirement_agent.graph.agent_state import TenderRequirementState
+from app.agents.tender_requirement_agent.graph.agent_state import (
+    TenderRequirementBatchState,
+)
 
 
 def read_markdown_file(file_path: Path) -> str:
@@ -31,13 +33,14 @@ def create_batches(
 
 
 def update_latency(
-    state: TenderRequirementState,
+    state: TenderRequirementBatchState,
     node_name: str,
     start_time: float,
 ) -> Dict[str, float]:
     """Update node latency."""
 
     latencies = dict(state.get("node_latencies", {}))
+
     latencies[node_name] = round(
         time.perf_counter() - start_time,
         3,

@@ -1,5 +1,5 @@
 from app.agents.tender_requirement_agent.graph.agent_state import (
-    TenderRequirementState,
+    ChunkState,
 )
 
 from app.agents.tender_requirement_agent.services.metadata_filter import (
@@ -19,11 +19,11 @@ MEDIUM_CONFIDENCE_THRESHOLD = 6
 
 
 def rule_based_filter(
-    state: TenderRequirementState,
+    chunk: ChunkState,
 ):
     """
     Combines metadata and content scores to determine whether
-    the chunk should be processed by the LLM.
+    a chunk should be processed by the LLM.
 
     Returns:
         {
@@ -38,14 +38,14 @@ def rule_based_filter(
     # Metadata Score
     # =====================================================
 
-    metadata_score, metadata_reason = metadata_filter(state)
+    metadata_score, metadata_reason = metadata_filter(chunk)
 
     # =====================================================
     # Content Score
     # =====================================================
 
     content_score, content_reason = content_filter(
-        state.get("chunk_text", "")
+        chunk.get("chunk_text", "")
     )
 
     # =====================================================
@@ -83,7 +83,7 @@ def rule_based_filter(
         reasons.append(f"Content: {content_reason}")
 
     # =====================================================
-    # Return State Updates
+    # Return Updates
     # =====================================================
 
     return {
